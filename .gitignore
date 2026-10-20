@@ -1,4 +1,5 @@
-/ops/ssh/omniconvert-server-vps
+/ops/ssh/
+/ops/holding-page/
 
 # Local SDKs and build output
 /.toolchains/

@@ -1,0 +1,26 @@
+# OmniConvert 实施状态
+
+更新：2026-10-21。当前分支：`feat/client-foundation`。
+
+## 已实现
+
+- 六平台 Flutter 工程骨架；访客可进入首页、任务、工具和设置。
+- Rust 本地核心及 Flutter/Rust 生成绑定；Windows 上的 Dart→Rust 健康检查通过。
+- 任务状态机、最近任务和失败/中断任务重试入口。
+- SQLite 任务持久化；启动时将遗留的运行中任务标记为已中断。Web 使用 SQLite WASM 和 IndexedDB。
+- 六目标 GitHub Actions 构建配置、本地验证脚本和第三方 WASM 许可声明。
+
+## 已验证
+
+- Windows 开发机：`flutter analyze`、`flutter test`（13 项）、`cargo test`、`cargo build`、`tool/verify_platforms.ps1 -Target web` 通过。
+- Flutter Web 在 `/app/` 路径构建成功；无界面 Edge 加载时无页面错误，SQLite WASM 请求返回 200，IndexedDB 数据库创建成功。
+- SQLite 测试覆盖创建/更新、排序、结构化错误、幂等键唯一性和重启恢复。
+
+## 待验证和待做
+
+- Windows 桌面调试构建未完成：本机缺少 Flutter 所需的 Visual Studio C++ 工作负载；Flutter Windows 构建产物下载曾因 TLS 握手中断。Android SDK 本机未安装。
+- GitHub 仓库尚无远端；Windows、Linux、macOS、Android、iOS 的 CI 作业还未实际运行。
+- 原生发行包中 Rust 库的自动编译和打包尚未接入；当前跨语言健康检查从开发构建目录加载动态库。
+- 本地图片工具、DOCX/MOBI 外部适配器、官网发布流程及 OCR 服务属于后续计划，尚未实现。
+
+客户端基础计划的跨平台验收需等待 CI 首次运行。仓库的公开发布与正式安装包发布都未执行；现有域名和服务器未改动。官网筹备页仍保留在本地 `ops/holding-page/` 和现有服务器上，含原有ICP备案与公安备案页脚；它已从客户端仓库的跟踪文件中移除，后续纳入独立官网仓库。

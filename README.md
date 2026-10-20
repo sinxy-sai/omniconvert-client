@@ -13,7 +13,7 @@ OmniConvert 是面向学生和研究者的本地优先文件与公式工具。�
 - Android 构建需要 Android SDK；Linux 桌面构建需要 Flutter 官方列出的 GTK/CMake 工具链。
 - macOS 和 iOS 构建只能在 macOS 与 Xcode 环境中执行。iOS 真机安装需要开发者自己的签名配置。
 
-本仓库的 `.toolchains/` 仅供本机开发，已被 Git 忽略；CI 会独立安装固定版本的 Flutter SDK。连接服务器用的 `ops/ssh/omniconvert-server-vps` 私钥也被 Git 忽略，不应提交到公开仓库。
+本仓库的 `.toolchains/` 仅供本机开发，已被 Git 忽略；CI 会独立安装固定版本的 Flutter SDK。运维凭据保存在 Git 忽略的本地目录中，不应提交到公开仓库。
 
 ## 本地验证
 
@@ -41,4 +41,4 @@ flutter_rust_bridge_codegen generate
 
 一键验证脚本：Windows 用 `./tool/verify_platforms.ps1`，Linux/macOS 用 `bash tool/verify_platforms.sh`。脚本先检查 Flutter、Rust 和跨语言测试，再构建当前平台。Windows 也可运行 `./tool/verify_platforms.ps1 -Target web` 验证 Web；Linux 可指定 `android` 或 `web`。GitHub Actions 在六个目标上分别编译，产物名采用 `OmniConvert-{version}-{platform}-{arch}`。CI 产物只是无签名的调试预览，正式安装包、哈希和发布流程将在后续发布阶段实现。
 
-设计与实施顺序见 [实施路线图](docs/superpowers/plans/2026-10-19-omniconvert-roadmap.md)。官网当前筹备页源文件位于 `ops/holding-page/index.html`；部署服务器使用系统 Nginx 提供静态页面。
+设计与实施顺序见 [实施路线图](docs/superpowers/plans/2026-10-19-omniconvert-roadmap.md)。本仓库对应公开客户端 `omniconvert-client`；官网源代码将放在独立的公开仓库 `omniconvert-site`，官方服务端放在私有仓库 `omniconvert-backend`。
