@@ -9,6 +9,7 @@ OmniConvert 是面向学生和研究者的本地优先文件与公式工具。�
 - Flutter **3.47.7**，Dart **3.13.5**。
 - Rust stable；本地验证版本为 **1.99.1**。
 - Windows 桌面构建需要 Visual Studio 的 **Desktop development with C++** 工作负载及 Windows SDK。
+- Windows 上使用 Flutter 插件还需启用系统“开发者模式”，以便创建插件符号链接。
 - Android 构建需要 Android SDK；Linux 桌面构建需要 Flutter 官方列出的 GTK/CMake 工具链。
 - macOS 和 iOS 构建只能在 macOS 与 Xcode 环境中执行。iOS 真机安装需要开发者自己的签名配置。
 
@@ -33,6 +34,8 @@ flutter_rust_bridge_codegen generate
 ```
 
 `flutter_rust_bridge.yaml` 控制代码生成。跨语言健康检查需先执行 `cargo build`，再运行指定测试；Web 客户端不加载原生动态库。原生安装包的 Rust 库打包方式将在平台构建阶段验证。
+
+最近任务保存在应用数据目录的 SQLite 数据库中；Web 使用 IndexedDB 承载 SQLite WASM 文件系统。Web 二进制来源和校验值见 [第三方声明](THIRD_PARTY_NOTICES.md)。启动时，原来处于“处理中”的任务会改为“已中断”，由用户决定是否重试。
 
 平台构建命令：`flutter build windows`、`flutter build linux`、`flutter build macos`、`flutter build apk`、`flutter build ios --no-codesign`、`flutter build web`。每条命令只在相应平台及工具链齐备时运行。Apple 平台构建由 macOS CI 检查。
 
