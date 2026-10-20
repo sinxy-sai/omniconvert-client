@@ -39,4 +39,6 @@ flutter_rust_bridge_codegen generate
 
 平台构建命令：`flutter build windows`、`flutter build linux`、`flutter build macos`、`flutter build apk`、`flutter build ios --no-codesign`、`flutter build web`。每条命令只在相应平台及工具链齐备时运行。Apple 平台构建由 macOS CI 检查。
 
+一键验证脚本：Windows 用 `./tool/verify_platforms.ps1`，Linux/macOS 用 `bash tool/verify_platforms.sh`。脚本先检查 Flutter、Rust 和跨语言测试，再构建当前平台。Windows 也可运行 `./tool/verify_platforms.ps1 -Target web` 验证 Web；Linux 可指定 `android` 或 `web`。GitHub Actions 在六个目标上分别编译，产物名采用 `OmniConvert-{version}-{platform}-{arch}`。CI 产物只是无签名的调试预览，正式安装包、哈希和发布流程将在后续发布阶段实现。
+
 设计与实施顺序见 [实施路线图](docs/superpowers/plans/2026-10-19-omniconvert-roadmap.md)。官网当前筹备页源文件位于 `ops/holding-page/index.html`；部署服务器使用系统 Nginx 提供静态页面。
