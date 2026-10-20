@@ -1,0 +1,19 @@
+/ops/ssh/omniconvert-server-vps
+
+# Local SDKs and build output
+/.toolchains/
+/.dart_tool/
+/.flutter-plugins
+/.flutter-plugins-dependencies
+/.packages
+/.pub-cache/
+/build/
+/coverage/
+/rust/target/
+
+# Local editor and OS state
+/.idea/
+/.vscode/
+*.iml
+.DS_Store
+Thumbs.db
