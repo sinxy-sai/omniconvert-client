@@ -1,6 +1,6 @@
 # OmniConvert 实施状态
 
-更新：2026-10-21。当前分支：`feat/client-foundation`。
+更新：2026-10-21。
 
 ## 已实现
 
@@ -19,8 +19,8 @@
 ## 待验证和待做
 
 - Windows 桌面调试构建未完成：本机缺少 Flutter 所需的 Visual Studio C++ 工作负载；Flutter Windows 构建产物下载曾因 TLS 握手中断。Android SDK 本机未安装。
-- GitHub 仓库尚无远端；Windows、Linux、macOS、Android、iOS 的 CI 作业还未实际运行。
+- Windows、Linux、macOS、Android、iOS 的 CI 作业需在 GitHub 首次推送后验证。
 - 原生发行包中 Rust 库的自动编译和打包尚未接入；当前跨语言健康检查从开发构建目录加载动态库。
 - 本地图片工具、DOCX/MOBI 外部适配器、官网发布流程及 OCR 服务属于后续计划，尚未实现。
 
-客户端基础计划的跨平台验收需等待 CI 首次运行。仓库的公开发布与正式安装包发布都未执行；现有域名和服务器未改动。官网筹备页仍保留在本地 `ops/holding-page/` 和现有服务器上，含原有ICP备案与公安备案页脚；它已从客户端仓库的跟踪文件中移除，后续纳入独立官网仓库。
+客户端基础计划的跨平台验收需等待 CI 首次运行。正式安装包发布未执行；现有域名和服务器未改动。官网筹备页仍保留在本地 `ops/holding-page/` 和现有服务器上，含原有ICP备案与公安备案页脚；它已从客户端仓库的当前跟踪文件中移除，后续纳入独立官网仓库。
