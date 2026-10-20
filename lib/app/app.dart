@@ -1,9 +1,20 @@
 import 'package:flutter/material.dart';
 
+import '../core/tasks/task_repository.dart';
 import 'router.dart';
 
-class OmniConvertApp extends StatelessWidget {
-  const OmniConvertApp({super.key});
+class OmniConvertApp extends StatefulWidget {
+  const OmniConvertApp({super.key, this.taskRepository});
+
+  final TaskRepository? taskRepository;
+
+  @override
+  State<OmniConvertApp> createState() => _OmniConvertAppState();
+}
+
+class _OmniConvertAppState extends State<OmniConvertApp> {
+  late final TaskRepository _taskRepository =
+      widget.taskRepository ?? InMemoryTaskRepository();
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -19,15 +30,19 @@ class OmniConvertApp extends StatelessWidget {
       final destination = AppDestination.fromPath(settings.name);
       return MaterialPageRoute<void>(
         settings: RouteSettings(name: destination.path),
-        builder: (_) => _AppShell(destination: destination),
+        builder: (_) => _AppShell(
+          destination: destination,
+          taskRepository: _taskRepository,
+        ),
       );
     },
   );
 }
 
 class _AppShell extends StatelessWidget {
-  const _AppShell({required this.destination});
+  const _AppShell({required this.destination, required this.taskRepository});
   final AppDestination destination;
+  final TaskRepository taskRepository;
 
   void _navigate(BuildContext context, int index) {
     final next = AppDestination.values[index];
@@ -45,7 +60,7 @@ class _AppShell extends StatelessWidget {
         final content = Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1120),
-            child: destination.buildPage(),
+            child: destination.buildPage(taskRepository),
           ),
         );
         return Scaffold(

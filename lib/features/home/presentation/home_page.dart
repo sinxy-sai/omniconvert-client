@@ -1,7 +1,36 @@
 import 'package:flutter/material.dart';
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+import '../../../core/tasks/task.dart';
+import '../../../core/tasks/task_repository.dart';
+import '../../../core/tasks/task_status.dart';
+
+class HomePage extends StatefulWidget {
+  const HomePage({super.key, required this.taskRepository});
+
+  final TaskRepository taskRepository;
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  late Future<List<Task>> _recentTasks = widget.taskRepository.listRecent();
+
+  Future<void> _retry(Task task) async {
+    try {
+      await widget.taskRepository.update(task.transitionTo(TaskStatus.queued));
+      if (mounted) {
+        setState(() {
+          _recentTasks = widget.taskRepository.listRecent();
+        });
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('重试失败：$error')));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,27 +74,67 @@ class HomePage extends StatelessWidget {
         const SizedBox(height: 32),
         Text('最近任务', style: textTheme.titleLarge),
         const SizedBox(height: 12),
-        Card.outlined(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-            child: Column(
+        FutureBuilder<List<Task>>(
+          future: _recentTasks,
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return const Text('任务记录暂时无法读取。');
+            }
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final tasks = snapshot.data!;
+            if (tasks.isEmpty) return _EmptyTasks(textTheme: textTheme);
+            return Column(
               children: [
-                Icon(
-                  Icons.inbox_outlined,
-                  size: 40,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(height: 12),
-                Text('还没有任务', style: textTheme.titleMedium),
-                const SizedBox(height: 6),
-                const Text('开始处理文件后，可以从这里继续查看结果。'),
+                for (final task in tasks)
+                  Card.outlined(
+                    child: ListTile(
+                      title: Text(task.inputMetadata['name'] ?? task.toolId),
+                      subtitle: Text('${task.toolId} · ${task.status.label}'),
+                      trailing:
+                          task.status == TaskStatus.failed ||
+                              task.status == TaskStatus.interrupted
+                          ? TextButton(
+                              key: Key('retry-${task.taskId}'),
+                              onPressed: () => _retry(task),
+                              child: const Text('重试'),
+                            )
+                          : null,
+                    ),
+                  ),
               ],
-            ),
-          ),
+            );
+          },
         ),
       ],
     );
   }
+}
+
+class _EmptyTasks extends StatelessWidget {
+  const _EmptyTasks({required this.textTheme});
+  final TextTheme textTheme;
+
+  @override
+  Widget build(BuildContext context) => Card.outlined(
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: Column(
+        children: [
+          Icon(
+            Icons.inbox_outlined,
+            size: 40,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          const SizedBox(height: 12),
+          Text('还没有任务', style: textTheme.titleMedium),
+          const SizedBox(height: 6),
+          const Text('开始处理文件后，可以从这里继续查看结果。'),
+        ],
+      ),
+    ),
+  );
 }
 
 class _QuickAction extends StatelessWidget {
