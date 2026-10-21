@@ -1,6 +1,10 @@
+pub mod docx;
 mod errors;
-mod types;
+pub mod external;
 pub mod image;
+pub mod mobi;
+pub mod process;
+mod types;
 
 pub use errors::{ToolError, ToolErrorCode};
 pub use types::{CancellationToken, ToolProgress, ToolRequest, ToolResult};

@@ -13,3 +13,4 @@ image = { version = "0.25.9", default-features = false, features = ["png", "jpeg
 kamadak-exif = "0.6"
 lopdf = "0.38"
 tempfile = "3.23"
+libc = "0.2"

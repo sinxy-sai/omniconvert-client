@@ -977,6 +977,7 @@ dependencies = [
  "flutter_rust_bridge",
  "image",
  "kamadak-exif",
+ "libc",
  "lopdf",
  "tempfile",
 ]
