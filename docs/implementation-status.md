@@ -16,11 +16,12 @@
 - Flutter Web 在 `/app/` 路径构建成功；无界面 Edge 加载时无页面错误，SQLite WASM 请求返回 200，IndexedDB 数据库创建成功。
 - SQLite 测试覆盖创建/更新、排序、结构化错误、幂等键唯一性和重启恢复。
 - GitHub Actions [运行 39471597280](https://github.com/sinxy-sai/omniconvert-client/actions/runs/39471597280) 全部通过：Windows、Linux、Android、Web、macOS 构建及 iOS 无签名编译检查；各作业的产物上传也通过。Android CI 修复提交为 `5aec27e`。
+- 本地工具第一阶段已实现：Rust 工具契约、输入大小和像素限制、取消、临时文件原子发布、PNG→JPEG、图片压缩和单图→PDF；Dart/Rust 图片工具绑定、原生工具页与任务执行服务已接入，跨语言冒烟测试通过。
 
 ## 待验证和待做
 
 - Windows 桌面调试构建未完成：本机缺少 Flutter 所需的 Visual Studio C++ 工作负载；Flutter Windows 构建产物下载曾因 TLS 握手中断。Android SDK 本机未安装。
 - 原生发行包中 Rust 库的自动编译和打包尚未接入；当前跨语言健康检查从开发构建目录加载动态库。
-- 本地图片工具、DOCX/MOBI 外部适配器、官网发布流程及 OCR 服务属于后续计划，尚未实现。
+- DOCX/MOBI 外部适配器、浏览器本地图片实现、官网发布流程及 OCR 服务属于后续计划，尚未实现。
 
 客户端基础计划的六平台 CI 构建检查已通过，正式安装包发布仍未执行；现有域名和服务器未改动。官网筹备页仍保留在本地 `ops/holding-page/` 和现有服务器上，含原有ICP备案与公安备案页脚；它已从客户端仓库的当前跟踪文件中移除，后续纳入独立官网仓库。

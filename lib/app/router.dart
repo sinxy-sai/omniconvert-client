@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/tasks/task_repository.dart';
+import '../core/tools/tool_execution_service.dart';
 import '../features/home/presentation/home_page.dart';
 import '../features/settings/presentation/settings_page.dart';
 import '../features/tasks/presentation/tasks_page.dart';
@@ -24,10 +25,13 @@ enum AppDestination {
         orElse: () => AppDestination.home,
       );
 
-  Widget buildPage(TaskRepository taskRepository) => switch (this) {
+  Widget buildPage(
+    TaskRepository taskRepository,
+    ToolExecutionService toolService,
+  ) => switch (this) {
     AppDestination.home => HomePage(taskRepository: taskRepository),
     AppDestination.tasks => const TasksPage(),
-    AppDestination.tools => const ToolsPage(),
+    AppDestination.tools => ToolsPage(toolService: toolService),
     AppDestination.settings => const SettingsPage(),
   };
 }
