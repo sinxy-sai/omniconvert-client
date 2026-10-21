@@ -7,4 +7,67 @@ import 'frb_generated.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
+// These functions are ignored because they are not marked as `pub`: `successful_image_outcome`
+
 Future<String> healthCheck() => RustLib.instance.api.crateApiHealthCheck();
+
+Future<ImageToolOutcome> runImageTool({
+  required String toolId,
+  required String inputPath,
+  required String outputPath,
+  required Map<String, String> options,
+  required BigInt maxBytes,
+}) => RustLib.instance.api.crateApiRunImageTool(
+  toolId: toolId,
+  inputPath: inputPath,
+  outputPath: outputPath,
+  options: options,
+  maxBytes: maxBytes,
+);
+
+class ImageToolOutcome {
+  final bool success;
+  final String outputPath;
+  final BigInt inputBytes;
+  final BigInt outputBytes;
+  final int width;
+  final int height;
+  final String errorCode;
+  final String errorMessage;
+
+  const ImageToolOutcome({
+    required this.success,
+    required this.outputPath,
+    required this.inputBytes,
+    required this.outputBytes,
+    required this.width,
+    required this.height,
+    required this.errorCode,
+    required this.errorMessage,
+  });
+
+  @override
+  int get hashCode =>
+      success.hashCode ^
+      outputPath.hashCode ^
+      inputBytes.hashCode ^
+      outputBytes.hashCode ^
+      width.hashCode ^
+      height.hashCode ^
+      errorCode.hashCode ^
+      errorMessage.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ImageToolOutcome &&
+          runtimeType == other.runtimeType &&
+          success == other.success &&
+          outputPath == other.outputPath &&
+          inputBytes == other.inputBytes &&
+          outputBytes == other.outputBytes &&
+          width == other.width &&
+          height == other.height &&
+          errorCode == other.errorCode &&
+          errorMessage == other.errorMessage;
+}

@@ -1,5 +1,6 @@
 mod errors;
 mod types;
+pub mod image;
 
 pub use errors::{ToolError, ToolErrorCode};
 pub use types::{CancellationToken, ToolProgress, ToolRequest, ToolResult};

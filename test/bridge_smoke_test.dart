@@ -19,6 +19,27 @@ void main() {
     await RustLib.init(externalLibrary: ExternalLibrary.open(libraryPath));
     try {
       expect(await healthCheck(), 'omniconvert-core-ok');
+
+      final directory = await Directory.systemTemp.createTemp('omniconvert-bridge-');
+      try {
+        final input = File('test/fixtures/pixel.png').absolute;
+        final output = File('${directory.path}/pixel.jpg');
+        final outcome = await runImageTool(
+          toolId: 'png_to_jpeg',
+          inputPath: input.path,
+          outputPath: output.path,
+          options: const {'quality': '90'},
+          maxBytes: BigInt.from(1024 * 1024),
+        );
+        expect(outcome.success, isTrue, reason: outcome.errorMessage);
+        expect(outcome.width, 2);
+        expect(outcome.height, 1);
+        expect(outcome.outputBytes, greaterThan(BigInt.zero));
+        expect(await output.exists(), isTrue);
+        expect((await output.readAsBytes()).take(2), [0xff, 0xd8]);
+      } finally {
+        await directory.delete(recursive: true);
+      }
     } finally {
       RustLib.dispose();
     }
