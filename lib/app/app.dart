@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 
 import '../core/tasks/task_repository.dart';
+import '../core/tools/tool_execution_service.dart';
+import '../core/tools/tool_runner.dart';
+import '../core/tools/tool_runner_factory_native.dart'
+    if (dart.library.js_interop) '../core/tools/tool_runner_factory_web.dart'
+    as tool_runner_factory;
 import 'router.dart';
 
 class OmniConvertApp extends StatefulWidget {
-  const OmniConvertApp({super.key, this.taskRepository});
+  const OmniConvertApp({super.key, this.taskRepository, this.toolRunner});
 
   final TaskRepository? taskRepository;
+  final ToolRunner? toolRunner;
 
   @override
   State<OmniConvertApp> createState() => _OmniConvertAppState();
@@ -15,6 +21,10 @@ class OmniConvertApp extends StatefulWidget {
 class _OmniConvertAppState extends State<OmniConvertApp> {
   late final TaskRepository _taskRepository =
       widget.taskRepository ?? InMemoryTaskRepository();
+  late final ToolExecutionService _toolService = ToolExecutionService(
+    _taskRepository,
+    widget.toolRunner ?? tool_runner_factory.createToolRunner(),
+  );
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -33,6 +43,7 @@ class _OmniConvertAppState extends State<OmniConvertApp> {
         builder: (_) => _AppShell(
           destination: destination,
           taskRepository: _taskRepository,
+          toolService: _toolService,
         ),
       );
     },
@@ -40,9 +51,14 @@ class _OmniConvertAppState extends State<OmniConvertApp> {
 }
 
 class _AppShell extends StatelessWidget {
-  const _AppShell({required this.destination, required this.taskRepository});
+  const _AppShell({
+    required this.destination,
+    required this.taskRepository,
+    required this.toolService,
+  });
   final AppDestination destination;
   final TaskRepository taskRepository;
+  final ToolExecutionService toolService;
 
   void _navigate(BuildContext context, int index) {
     final next = AppDestination.values[index];
@@ -60,7 +76,7 @@ class _AppShell extends StatelessWidget {
         final content = Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1120),
-            child: destination.buildPage(taskRepository),
+            child: destination.buildPage(taskRepository, toolService),
           ),
         );
         return Scaffold(
