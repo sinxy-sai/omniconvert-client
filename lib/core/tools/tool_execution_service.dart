@@ -73,8 +73,8 @@ class ToolExecutionService {
     return ToolExecution(
       taskId: taskId,
       completed: completion,
-      isCancelled: () => cancelled,
-      cancel: () async {
+      isCancelledCallback: () => cancelled,
+      cancelCallback: () async {
         if (cancelled || current.status != TaskStatus.running) return;
         cancelled = true;
         if (runner case final CancellableToolRunner cancellable) {
@@ -91,19 +91,18 @@ class ToolExecution {
   const ToolExecution({
     required this.taskId,
     required this.completed,
-    required bool Function() isCancelled,
-    required Future<void> Function() cancel,
-  }) : _isCancelled = isCancelled,
-       _cancel = cancel;
+    required this.isCancelledCallback,
+    required this.cancelCallback,
+  });
 
   final String taskId;
   final Future<String> completed;
-  final bool Function() _isCancelled;
-  final Future<void> Function() _cancel;
+  final bool Function() isCancelledCallback;
+  final Future<void> Function() cancelCallback;
 
-  bool get isCancelled => _isCancelled();
+  bool get isCancelled => isCancelledCallback();
 
-  Future<void> cancel() => _cancel();
+  Future<void> cancel() => cancelCallback();
 }
 
 abstract interface class CancellableToolRunner implements ToolRunner {
