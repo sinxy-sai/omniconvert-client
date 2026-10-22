@@ -11,6 +11,6 @@ crate-type = ["cdylib", "staticlib", "rlib"]
 flutter_rust_bridge = "=2.13.0"
 image = { version = "0.25.9", default-features = false, features = ["png", "jpeg"] }
 kamadak-exif = "0.6"
-lopdf = "0.38"
+lopdf = "0.42"
 tempfile = "3.23"
 libc = "0.2"
