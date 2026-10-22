@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 class ToolRequest {
   const ToolRequest({
     required this.toolId,
@@ -5,6 +7,7 @@ class ToolRequest {
     required this.outputPath,
     this.options = const {},
     this.maxBytes = 64 * 1024 * 1024,
+    this.inputBytes,
   });
 
   final String toolId;
@@ -12,6 +15,7 @@ class ToolRequest {
   final String outputPath;
   final Map<String, String> options;
   final int maxBytes;
+  final Uint8List? inputBytes;
 
   @override
   bool operator ==(Object other) =>
@@ -20,10 +24,20 @@ class ToolRequest {
       inputPath == other.inputPath &&
       outputPath == other.outputPath &&
       maxBytes == other.maxBytes &&
+      _bytesEqual(inputBytes, other.inputBytes) &&
       _mapsEqual(options, other.options);
 
   @override
   int get hashCode => Object.hash(toolId, inputPath, outputPath, maxBytes);
+}
+
+bool _bytesEqual(Uint8List? left, Uint8List? right) {
+  if (left == null || right == null) return left == right;
+  if (left.length != right.length) return false;
+  for (var index = 0; index < left.length; index++) {
+    if (left[index] != right[index]) return false;
+  }
+  return true;
 }
 
 bool _mapsEqual(Map<String, String> left, Map<String, String> right) {
@@ -47,12 +61,14 @@ class ToolRunResult {
     required this.inputBytes,
     required this.outputBytes,
     this.metadata = const {},
+    this.outputBytesData,
   });
 
   final String outputPath;
   final int inputBytes;
   final int outputBytes;
   final Map<String, String> metadata;
+  final Uint8List? outputBytesData;
 }
 
 class ToolRunFailure {
