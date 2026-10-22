@@ -18,6 +18,7 @@
 - GitHub Actions [运行 39471597280](https://github.com/sinxy-sai/omniconvert-client/actions/runs/39471597280) 全部通过：Windows、Linux、Android、Web、macOS 构建及 iOS 无签名编译检查；各作业的产物上传也通过。Android CI 修复提交为 `5aec27e`。
 - 本地工具第一阶段已实现：Rust 工具契约、输入大小和像素限制、取消、临时文件原子发布、PNG→JPEG、图片压缩和单图→PDF；Dart/Rust 图片工具绑定、原生工具页与任务执行服务已接入，跨语言冒烟测试通过。
 - 桌面文档适配器已实现检测与安全进程边界：LibreOffice DOCX→PDF、Calibre MOBI→PDF，包含版本记录、超时、取消、输出校验和代表性 PDF 测试；第三方转换器仍由用户自行安装。
+- 任务执行已支持运行中取消、迟到结果保护和同一任务记录上的失败重试；取消不会被迟到的成功结果覆盖。
 
 ## 待验证和待做
 
