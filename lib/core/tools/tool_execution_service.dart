@@ -12,9 +12,14 @@ class ToolExecutionService {
   final ToolRunner runner;
 
   Future<String> execute(ToolRequest request) async {
+    final execution = await start(request);
+    return execution.completed;
+  }
+
+  Future<ToolExecution> start(ToolRequest request) async {
     final now = DateTime.now().toUtc();
     final taskId = '${request.toolId}-${now.microsecondsSinceEpoch}-${Random().nextInt(1 << 20)}';
-    final task = Task(
+    final queued = Task(
       taskId: taskId,
       idempotencyKey: taskId,
       toolId: request.toolId,
@@ -23,34 +28,84 @@ class ToolExecutionService {
       createdAt: now,
       updatedAt: now,
       attemptStartedAt: now,
-      inputMetadata: {'path': request.inputPath, 'name': request.inputPath.split(RegExp(r'[\\/]')).last},
+      inputMetadata: {
+        'path': request.inputPath,
+        'name': request.inputPath.split(RegExp(r'[\\/]')).last,
+      },
     );
-    await repository.create(task);
-    var current = task.transitionTo(TaskStatus.running);
+    await repository.create(queued);
+    var current = queued.transitionTo(TaskStatus.running);
     await repository.update(current);
+    var cancelled = false;
     var progressWrite = Future<void>.value();
-    try {
-      final result = await runner.run(request, onProgress: (progress) {
-        if (current.status == TaskStatus.running && progress.progress >= current.progress) {
-          current = current.withProgress(progress.progress);
-          progressWrite = progressWrite.then((_) => repository.update(current));
+
+    final completion = () async {
+      try {
+        final result = await runner.run(request, onProgress: (progress) {
+          if (!cancelled && current.status == TaskStatus.running &&
+              progress.progress >= current.progress) {
+            final progressed = current.withProgress(progress.progress);
+            current = progressed;
+            progressWrite = progressWrite.then((_) => repository.update(progressed));
+          }
+        });
+        await progressWrite;
+        if (cancelled || current.status == TaskStatus.cancelled) return taskId;
+        current = current.transitionTo(TaskStatus.succeeded, outputMetadata: {
+          'path': result.outputPath,
+          'bytes': '${result.outputBytes}',
+          ...result.metadata,
+        });
+        await repository.update(current);
+      } on ToolRunException catch (error) {
+        await progressWrite;
+        if (cancelled || current.status == TaskStatus.cancelled) return taskId;
+        current = current.transitionTo(TaskStatus.failed, error: TaskError(
+          code: error.failure.code,
+          message: error.failure.message,
+        ));
+        await repository.update(current);
+        rethrow;
+      }
+      return taskId;
+    }();
+
+    return ToolExecution(
+      taskId: taskId,
+      completed: completion,
+      isCancelled: () => cancelled,
+      cancel: () async {
+        if (cancelled || current.status != TaskStatus.running) return;
+        cancelled = true;
+        if (runner case final CancellableToolRunner cancellable) {
+          cancellable.cancel();
         }
-      });
-      await progressWrite;
-      current = current.transitionTo(TaskStatus.succeeded, outputMetadata: {
-        'path': result.outputPath,
-        'bytes': '${result.outputBytes}',
-        ...result.metadata,
-      });
-      await repository.update(current);
-    } on ToolRunException catch (error) {
-      current = current.transitionTo(TaskStatus.failed, error: TaskError(
-        code: error.failure.code,
-        message: error.failure.message,
-      ));
-      await repository.update(current);
-      rethrow;
-    }
-    return taskId;
+        current = current.transitionTo(TaskStatus.cancelled);
+        await repository.update(current);
+      },
+    );
   }
+}
+
+class ToolExecution {
+  const ToolExecution({
+    required this.taskId,
+    required this.completed,
+    required bool Function() isCancelled,
+    required Future<void> Function() cancel,
+  }) : _isCancelled = isCancelled,
+       _cancel = cancel;
+
+  final String taskId;
+  final Future<String> completed;
+  final bool Function() _isCancelled;
+  final Future<void> Function() _cancel;
+
+  bool get isCancelled => _isCancelled();
+
+  Future<void> cancel() => _cancel();
+}
+
+abstract interface class CancellableToolRunner implements ToolRunner {
+  void cancel();
 }

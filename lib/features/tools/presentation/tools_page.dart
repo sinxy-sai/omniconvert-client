@@ -19,6 +19,7 @@ class _ToolsPageState extends State<ToolsPage> {
   String _toolId = 'png_to_jpeg';
   bool _running = false;
   String? _message;
+  ToolExecution? _execution;
 
   @override
   void dispose() {
@@ -48,13 +49,17 @@ class _ToolsPageState extends State<ToolsPage> {
       });
     }
     try {
-      await widget.toolService.execute(ToolRequest(
+      final execution = await widget.toolService.start(ToolRequest(
         toolId: _toolId,
         inputPath: input,
         outputPath: output,
         options: options,
       ));
-      if (mounted) setState(() => _message = '任务已完成，结果已写入输出路径。');
+      _execution = execution;
+      await execution.completed;
+      if (mounted && !execution.isCancelled) {
+        setState(() => _message = '任务已完成，结果已写入输出路径。');
+      }
     } on ToolRunException catch (error) {
       if (mounted) {
         setState(() => _message =
@@ -63,6 +68,13 @@ class _ToolsPageState extends State<ToolsPage> {
     } finally {
       if (mounted) setState(() => _running = false);
     }
+  }
+
+  Future<void> _cancel() async {
+    final execution = _execution;
+    if (execution == null) return;
+    await execution.cancel();
+    if (mounted) setState(() => _message = '任务已取消。');
   }
 
   @override
@@ -113,10 +125,24 @@ class _ToolsPageState extends State<ToolsPage> {
         ),
       ),
       const SizedBox(height: 16),
-      FilledButton.icon(
-        onPressed: _running ? null : _run,
-        icon: const Icon(Icons.play_arrow),
-        label: Text(_running ? '处理中…' : '开始处理'),
+      Row(
+        children: [
+          Expanded(
+            child: FilledButton.icon(
+              onPressed: _running ? null : _run,
+              icon: const Icon(Icons.play_arrow),
+              label: Text(_running ? '处理中…' : '开始处理'),
+            ),
+          ),
+          if (_running) ...[
+            const SizedBox(width: 12),
+            OutlinedButton.icon(
+              onPressed: _cancel,
+              icon: const Icon(Icons.stop),
+              label: const Text('取消'),
+            ),
+          ],
+        ],
       ),
       if (_running) ...[
         const SizedBox(height: 16),

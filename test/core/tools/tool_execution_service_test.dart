@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omniconvert/core/tasks/task_repository.dart';
 import 'package:omniconvert/core/tasks/task_status.dart';
@@ -26,6 +28,20 @@ class _FakeRunner implements ToolRunner {
       metadata: const {'width': '2', 'height': '1'},
     );
   }
+}
+
+class _BlockingRunner implements CancellableToolRunner {
+  final result = Completer<ToolRunResult>();
+  bool cancelled = false;
+
+  @override
+  void cancel() => cancelled = true;
+
+  @override
+  Future<ToolRunResult> run(
+    ToolRequest request, {
+    void Function(ToolProgress progress)? onProgress,
+  }) => result.future;
 }
 
 ToolRequest _request() => const ToolRequest(
@@ -77,5 +93,25 @@ void main() {
     expect(task.status, TaskStatus.failed);
     expect(task.error?.code, 'InputTooLarge');
     expect(task.error?.message, 'Input exceeds the size limit');
+  });
+
+  test('cancellation wins over a late successful runner result', () async {
+    final repository = InMemoryTaskRepository();
+    final runner = _BlockingRunner();
+    final service = ToolExecutionService(repository, runner);
+    final execution = await service.start(_request());
+
+    await execution.cancel();
+    runner.result.complete(ToolRunResult(
+      outputPath: _request().outputPath,
+      inputBytes: 12,
+      outputBytes: 8,
+    ));
+    await execution.completed;
+
+    final task = (await repository.listRecent()).single;
+    expect(runner.cancelled, isTrue);
+    expect(task.status, TaskStatus.cancelled);
+    expect(task.outputMetadata, isEmpty);
   });
 }
