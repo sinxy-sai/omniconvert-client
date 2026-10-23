@@ -1,7 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
-class SettingsPage extends StatelessWidget {
+import '../../../core/updates/update_checker.dart';
+import '../../../core/updates/update_service.dart';
+
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  late final Future<PackageInfo> _packageInfo = PackageInfo.fromPlatform();
+  UpdateResult? _update;
+  bool _checking = false;
+
+  Future<void> _checkForUpdates() async {
+    setState(() => _checking = true);
+    try {
+      final info = await _packageInfo;
+      final result = await const UpdateService().check(info.version);
+      if (mounted) {
+        setState(() => _update = result);
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(
+          () =>
+              _update = UpdateResult(UpdateState.invalidManifest, error: error),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _checking = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) => ListView(
@@ -9,11 +44,24 @@ class SettingsPage extends StatelessWidget {
     children: [
       Text('设置', style: Theme.of(context).textTheme.headlineMedium),
       const SizedBox(height: 18),
-      const Card.outlined(
+      Card.outlined(
         child: ListTile(
-          leading: Icon(Icons.system_update_outlined),
-          title: Text('版本更新'),
-          subtitle: Text('当前版本 0.1.0 · 可在官网查看经过校验的发布信息。'),
+          leading: const Icon(Icons.system_update_outlined),
+          title: const Text('版本更新'),
+          subtitle: FutureBuilder(
+            future: _packageInfo,
+            builder: (context, snapshot) => Text(_statusText(snapshot.data)),
+          ),
+          trailing: _checking
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : IconButton(
+                  onPressed: _checkForUpdates,
+                  icon: const Icon(Icons.refresh),
+                ),
         ),
       ),
       const SizedBox(height: 12),
@@ -42,4 +90,17 @@ class SettingsPage extends StatelessWidget {
       ),
     ],
   );
+
+  String _statusText(PackageInfo? info) {
+    final version = info?.version ?? '0.1.0';
+    final result = _update;
+    if (result == null) return '当前版本 $version · 点击刷新检查官网发布信息。';
+    return switch (result.state) {
+      UpdateState.current => '当前版本 $version · 已是最新版本。',
+      UpdateState.available =>
+        '发现新版本 ${result.release?.version} · ${result.release?.releaseNotes}',
+      UpdateState.required => '当前版本过旧，必须升级到 ${result.release?.version}。',
+      UpdateState.invalidManifest => '版本检查失败，请稍后重试。',
+    };
+  }
 }
