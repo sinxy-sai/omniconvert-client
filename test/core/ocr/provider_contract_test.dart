@@ -7,11 +7,12 @@ import 'package:omniconvert/core/ocr/ocr_provider.dart';
 void main() {
   test('custom provider parses capabilities and result', () async {
     final client = MockClient((request) async {
-      if (request.url.path.endsWith('capabilities'))
+      if (request.url.path.endsWith('capabilities')) {
         return http.Response(
           '{"protocolVersion":"ocr-provider-v1","modes":["formula"],"maxBytes":100,"maxTimeoutSeconds":20}',
           200,
         );
+      }
       return http.Response(
         '{"requestId":"req-1","latex":"\\\\frac{a}{b}","modelVersion":"mock-1","warnings":[]}',
         200,

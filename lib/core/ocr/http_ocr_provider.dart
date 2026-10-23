@@ -5,30 +5,32 @@ import 'package:http/http.dart' as http;
 import 'ocr_provider.dart';
 
 abstract class HttpOcrProvider implements OcrProvider {
-  const HttpOcrProvider(this.baseUri, {http.Client? client}) : _client = client;
+  const HttpOcrProvider(this.baseUri, {this._client});
   final Uri baseUri;
   final http.Client? _client;
   http.Client get client => _client ?? http.Client();
 
   void validateEndpoint({bool allowLocalHttp = false}) {
     final local = baseUri.host == 'localhost' || baseUri.host == '127.0.0.1';
-    if (baseUri.scheme != 'https' && !(allowLocalHttp && local))
+    if (baseUri.scheme != 'https' && !(allowLocalHttp && local)) {
       throw const OcrProviderException(
         'insecure_endpoint',
         'Provider endpoint must use HTTPS',
       );
+    }
   }
 
   @override
   Future<OcrCapabilities> capabilities() async {
     validateEndpoint();
     final response = await client.get(baseUri.resolve('/v1/capabilities'));
-    if (response.statusCode != 200)
+    if (response.statusCode != 200) {
       throw OcrProviderException(
         'provider_unavailable',
         'Capabilities request failed',
         retryable: true,
       );
+    }
     try {
       final json = jsonDecode(response.body) as Map<String, dynamic>;
       return OcrCapabilities(
@@ -46,12 +48,13 @@ abstract class HttpOcrProvider implements OcrProvider {
   }
 
   Future<OcrResult> parseResult(http.Response response) async {
-    if (response.statusCode != 200)
+    if (response.statusCode != 200) {
       throw OcrProviderException(
         'provider_error',
         'Recognition request failed',
         retryable: response.statusCode >= 500,
       );
+    }
     try {
       final json = jsonDecode(response.body) as Map<String, dynamic>;
       return OcrResult(
