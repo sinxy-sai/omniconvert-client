@@ -47,7 +47,7 @@ class ReleaseManifest {
             url,
             hash,
             raw['releaseNotes'],
-          ].any((v) => v is! String))
+          ].any((v) => v is! String)) {
             throw const FormatException('release fields are invalid');
           }
           if (!const {
@@ -57,7 +57,7 @@ class ReleaseManifest {
                 'linux',
                 'macos',
               }.contains(platform) ||
-              arch == 'unknown')
+              arch == 'unknown') {
             throw const FormatException('unsupported release target');
           }
           final parsedUrl = Uri.tryParse(url as String);
