@@ -18,6 +18,10 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName).setMethodCallHandler { call, result ->
+            if (call.method == "deviceArch") {
+                result.success(Build.SUPPORTED_ABIS.firstOrNull())
+                return@setMethodCallHandler
+            }
             if (call.method != "installVerifiedApk") {
                 result.notImplemented()
                 return@setMethodCallHandler
