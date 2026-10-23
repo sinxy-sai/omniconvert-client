@@ -25,12 +25,14 @@ class ReleaseManifest {
 
   factory ReleaseManifest.fromJson(String source) {
     final decoded = jsonDecode(source);
-    if (decoded is! Map || decoded['releases'] is! List)
+    if (decoded is! Map || decoded['releases'] is! List) {
       throw const FormatException('manifest must contain releases');
+    }
     final releases = (decoded['releases'] as List)
         .map((raw) {
-          if (raw is! Map)
+          if (raw is! Map) {
             throw const FormatException('release must be an object');
+          }
           final platform = raw['platform'];
           final arch = raw['arch'];
           final version = raw['version'];
@@ -47,6 +49,7 @@ class ReleaseManifest {
             raw['releaseNotes'],
           ].any((v) => v is! String))
             throw const FormatException('release fields are invalid');
+          }
           if (!const {
                 'android',
                 'web',
@@ -56,11 +59,14 @@ class ReleaseManifest {
               }.contains(platform) ||
               arch == 'unknown')
             throw const FormatException('unsupported release target');
+          }
           final parsedUrl = Uri.tryParse(url as String);
-          if (parsedUrl == null || parsedUrl.scheme != 'https')
+          if (parsedUrl == null || parsedUrl.scheme != 'https') {
             throw const FormatException('downloadUrl must use HTTPS');
-          if (!RegExp(r'^[0-9a-fA-F]{64}$').hasMatch(hash as String))
+          }
+          if (!RegExp(r'^[0-9a-fA-F]{64}$').hasMatch(hash as String)) {
             throw const FormatException('sha256 is invalid');
+          }
           return ReleaseArtifact(
             platform: platform as String,
             arch: arch as String,

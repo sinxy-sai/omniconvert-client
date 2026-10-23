@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/updates/update_checker.dart';
-
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
