@@ -12,8 +12,8 @@ class DownloadProgress {
 }
 
 class UpdateDownloader {
-  const UpdateDownloader({http.Client? client, this.save = saveUpdate}) : _client = client;
-  final http.Client? _client;
+  const UpdateDownloader({this.client, this.save = saveUpdate});
+  final http.Client? client;
   final Future<String> Function(String, Stream<List<int>>) save;
 
   Future<String> download(
@@ -21,11 +21,11 @@ class UpdateDownloader {
     void Function(DownloadProgress progress)? onProgress,
     Future<bool> Function()? isCancelled,
   }) async {
-    final client = _client ?? http.Client();
+    final httpClient = client ?? http.Client();
     try {
       if (release.downloadUrl.scheme != 'https') throw const FormatException('Download must use HTTPS');
       final request = http.Request('GET', release.downloadUrl)..followRedirects = false;
-      final response = await client.send(request);
+      final response = await httpClient.send(request);
       if (response.statusCode != 200) throw StateError('Download failed with HTTP ${response.statusCode}');
       var received = 0;
       final stream = response.stream.asyncMap((chunk) async {
@@ -38,7 +38,7 @@ class UpdateDownloader {
         });
       return await save('update.apk', stream);
     } finally {
-      if (_client == null) client.close();
+      if (client == null) httpClient.close();
     }
   }
 }
