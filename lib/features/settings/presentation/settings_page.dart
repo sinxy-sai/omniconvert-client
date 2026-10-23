@@ -20,6 +20,16 @@ class _SettingsPageState extends State<SettingsPage> {
   late final OcrProviderSettingsStore _providerSettings =
       widget.providerSettings ?? OcrProviderSettingsStore();
   Uri? _customEndpoint;
+  @override
+  void initState() {
+    super.initState();
+    _loadCustomEndpoint();
+  }
+
+  Future<void> _loadCustomEndpoint() async {
+    final endpoint = await _providerSettings.loadCustomEndpoint();
+    if (mounted) setState(() => _customEndpoint = endpoint);
+  }
 
   Future<void> _checkForUpdates() async {
     setState(() => _checking = true);

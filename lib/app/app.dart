@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../core/tasks/task_repository.dart';
+import '../core/ocr/custom_ocr_provider.dart';
+import '../core/ocr/provider_settings.dart';
+import '../core/ocr/ocr_provider.dart';
 import '../core/tools/tool_execution_service.dart';
 import '../core/tools/tool_runner.dart';
 import '../core/tools/tool_runner_factory_native.dart'
@@ -25,6 +28,21 @@ class _OmniConvertAppState extends State<OmniConvertApp> {
     _taskRepository,
     widget.toolRunner ?? tool_runner_factory.createToolRunner(),
   );
+  late final OcrProviderSettingsStore _providerSettings =
+      OcrProviderSettingsStore();
+  OcrProvider? _ocrProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProvider();
+  }
+
+  Future<void> _loadProvider() async {
+    final endpoint = await _providerSettings.loadCustomEndpoint();
+    if (!mounted || endpoint == null) return;
+    setState(() => _ocrProvider = CustomOcrProvider(endpoint));
+  }
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -44,6 +62,8 @@ class _OmniConvertAppState extends State<OmniConvertApp> {
           destination: destination,
           taskRepository: _taskRepository,
           toolService: _toolService,
+          ocrProvider: _ocrProvider,
+          providerSettings: _providerSettings,
         ),
       );
     },
@@ -55,10 +75,14 @@ class _AppShell extends StatelessWidget {
     required this.destination,
     required this.taskRepository,
     required this.toolService,
+    required this.ocrProvider,
+    required this.providerSettings,
   });
   final AppDestination destination;
   final TaskRepository taskRepository;
   final ToolExecutionService toolService;
+  final OcrProvider? ocrProvider;
+  final OcrProviderSettingsStore providerSettings;
 
   void _navigate(BuildContext context, int index) {
     final next = AppDestination.values[index];
@@ -76,7 +100,12 @@ class _AppShell extends StatelessWidget {
         final content = Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1120),
-            child: destination.buildPage(taskRepository, toolService),
+            child: destination.buildPage(
+              taskRepository,
+              toolService,
+              ocrProvider,
+              providerSettings,
+            ),
           ),
         );
         return Scaffold(
