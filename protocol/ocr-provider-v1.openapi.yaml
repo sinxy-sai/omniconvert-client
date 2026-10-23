@@ -1,0 +1,87 @@
+openapi: 3.0.3
+info:
+  title: OmniConvert OCR Provider API
+  version: 1.0.0
+  description: Replaceable provider contract for one-image handwritten formula recognition.
+servers:
+  - url: https://provider.example.com
+paths:
+  /v1/capabilities:
+    get:
+      operationId: capabilities
+      responses:
+        '200':
+          description: Provider capabilities
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Capabilities'
+  /v1/recognize:
+    post:
+      operationId: recognize
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RecognizeRequest'
+      responses:
+        '200':
+          description: Recognition result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecognizeResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '408': { $ref: '#/components/responses/Timeout' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/TooLarge' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, minLength: 16, maxLength: 128 }
+  schemas:
+    Capabilities:
+      type: object
+      required: [protocolVersion, modes, maxBytes, maxTimeoutSeconds]
+      properties:
+        protocolVersion: { type: string, example: ocr-provider-v1 }
+        modes: { type: array, items: { type: string, enum: [formula] } }
+        maxBytes: { type: integer, minimum: 1, example: 10485760 }
+        maxTimeoutSeconds: { type: integer, minimum: 1, example: 30 }
+    RecognizeRequest:
+      type: object
+      required: [image, mode, timeoutSeconds]
+      properties:
+        image: { type: string, format: binary }
+        mode: { type: string, enum: [formula] }
+        timeoutSeconds: { type: integer, minimum: 1, maximum: 60 }
+    RecognizeResponse:
+      type: object
+      required: [requestId, latex, modelVersion, warnings]
+      properties:
+        requestId: { type: string }
+        latex: { type: string }
+        modelVersion: { type: string }
+        warnings: { type: array, items: { type: string } }
+    Error:
+      type: object
+      required: [code, message, retryable]
+      properties:
+        code: { type: string }
+        message: { type: string }
+        retryable: { type: boolean }
+  responses:
+    BadRequest: { description: Invalid image or mode, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Timeout: { description: Provider timeout, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Conflict: { description: Idempotency key conflict, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    TooLarge: { description: Image exceeds maxBytes, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    RateLimited: { description: Rate limit exceeded, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Unavailable: { description: Provider unavailable, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
