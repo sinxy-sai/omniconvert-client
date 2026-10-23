@@ -21,15 +21,20 @@ class _SettingsPageState extends State<SettingsPage> {
     try {
       final info = await _packageInfo;
       final result = await const UpdateService().check(info.version);
-      if (mounted) setState(() => _update = result);
+      if (mounted) {
+        setState(() => _update = result);
+      }
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(
           () =>
               _update = UpdateResult(UpdateState.invalidManifest, error: error),
         );
+      }
     } finally {
-      if (mounted) setState(() => _checking = false);
+      if (mounted) {
+        setState(() => _checking = false);
+      }
     }
   }
 

@@ -7,21 +7,20 @@ import 'update_checker.dart';
 const releaseManifestUrl = 'https://www.sinxysai.site/releases/latest.json';
 
 class UpdateService {
-  const UpdateService({http.Client? client, MethodChannel? channel})
-    : _client = client,
-      _channel =
+  const UpdateService({this.client, MethodChannel? channel})
+    : _channel =
           channel ?? const MethodChannel('site.sinxysai.omniconvert/updates');
 
-  final http.Client? _client;
+  final http.Client? client;
   final MethodChannel _channel;
 
   Future<UpdateResult> check(String currentVersion) async {
     final target = await _target();
     if (target == null) return const UpdateResult(UpdateState.current);
-    final client = _client ?? http.Client();
+    final httpClient = client ?? http.Client();
     try {
       return await UpdateChecker(() async {
-        final response = await client.get(Uri.parse(releaseManifestUrl));
+        final response = await httpClient.get(Uri.parse(releaseManifestUrl));
         if (response.statusCode != 200) {
           throw StateError(
             'Release service returned HTTP ${response.statusCode}',
@@ -30,7 +29,7 @@ class UpdateService {
         return response.body;
       }).check(currentVersion, target.$1, target.$2);
     } finally {
-      if (_client == null) client.close();
+      if (client == null) httpClient.close();
     }
   }
 
