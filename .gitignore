@@ -11,6 +11,8 @@
 /build/
 /coverage/
 /rust/target/
+**/__pycache__/
+*.pyc
 
 # Local editor and OS state
 /.idea/
