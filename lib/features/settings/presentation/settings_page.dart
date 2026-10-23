@@ -10,6 +10,14 @@ class SettingsPage extends StatelessWidget {
       Text('设置', style: Theme.of(context).textTheme.headlineMedium),
       const SizedBox(height: 18),
       const Card.outlined(
+        child: ListTile(
+          leading: Icon(Icons.system_update_outlined),
+          title: Text('版本更新'),
+          subtitle: Text('当前版本 0.1.0 · 可在官网查看经过校验的发布信息。'),
+        ),
+      ),
+      const SizedBox(height: 12),
+      const Card.outlined(
         child: Column(
           children: [
             ListTile(
