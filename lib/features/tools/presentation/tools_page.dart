@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/tools/local_file.dart';
 import '../../../core/tools/tool_execution_service.dart';
 import '../../../core/tools/tool_runner.dart';
 
@@ -20,6 +22,8 @@ class _ToolsPageState extends State<ToolsPage> {
   bool _running = false;
   String? _message;
   ToolExecution? _execution;
+  Uint8List? _selectedBytes;
+  String? _selectedName;
 
   @override
   void dispose() {
@@ -54,11 +58,18 @@ class _ToolsPageState extends State<ToolsPage> {
         inputPath: input,
         outputPath: output,
         options: options,
+        inputBytes: _selectedBytes,
       ));
       _execution = execution;
       await execution.completed;
+      final result = await execution.result;
+      if (result?.outputBytesData != null) {
+        downloadLocalFile(result!.outputBytesData!, output);
+      }
       if (mounted && !execution.isCancelled) {
-        setState(() => _message = '任务已完成，结果已写入输出路径。');
+        setState(() => _message = result?.outputBytesData == null
+            ? '任务已完成，结果已写入输出路径。'
+            : '任务已完成，结果已下载。');
       }
     } on ToolRunException catch (error) {
       if (mounted) {
@@ -68,6 +79,20 @@ class _ToolsPageState extends State<ToolsPage> {
     } finally {
       if (mounted) setState(() => _running = false);
     }
+  }
+
+  Future<void> _pickInput() async {
+    final selection = await pickLocalImage();
+    if (selection == null || !mounted) return;
+    setState(() {
+      _selectedBytes = Uint8List.fromList(selection.bytes);
+      _selectedName = selection.name;
+      _inputController.text = selection.name;
+      if (_outputController.text.trim().isEmpty) {
+        final base = selection.name.replaceFirst(RegExp(r'\.[^.]+$'), '');
+        _outputController.text = '$base.${_toolId == 'image_to_pdf' ? 'pdf' : 'jpg'}';
+      }
+    });
   }
 
   Future<void> _cancel() async {
@@ -97,13 +122,27 @@ class _ToolsPageState extends State<ToolsPage> {
             : (selection) => setState(() => _toolId = selection.first),
       ),
       const SizedBox(height: 20),
-      TextField(
-        controller: _inputController,
-        enabled: !_running,
-        decoration: const InputDecoration(
-          labelText: '输入文件路径',
-          border: OutlineInputBorder(),
-        ),
+      Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _inputController,
+              enabled: !_running && !kIsWeb,
+              decoration: InputDecoration(
+                labelText: _selectedName == null ? '输入文件路径' : '已选择文件',
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ),
+          if (kIsWeb) ...[
+            const SizedBox(width: 12),
+            OutlinedButton.icon(
+              onPressed: _running ? null : _pickInput,
+              icon: const Icon(Icons.upload_file),
+              label: const Text('选择文件'),
+            ),
+          ],
+        ],
       ),
       const SizedBox(height: 12),
       TextField(
