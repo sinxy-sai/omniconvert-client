@@ -20,7 +20,6 @@ class _SettingsPageState extends State<SettingsPage> {
   late final OcrProviderSettingsStore _providerSettings =
       widget.providerSettings ?? OcrProviderSettingsStore();
   Uri? _customEndpoint;
-
   @override
   void initState() {
     super.initState();
