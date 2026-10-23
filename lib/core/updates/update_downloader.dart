@@ -12,8 +12,9 @@ class DownloadProgress {
 }
 
 class UpdateDownloader {
-  const UpdateDownloader({http.Client? client}) : _client = client;
+  const UpdateDownloader({http.Client? client, this.save = saveUpdate}) : _client = client;
   final http.Client? _client;
+  final Future<String> Function(String, Stream<List<int>>) save;
 
   Future<String> download(
     ReleaseArtifact release, {
@@ -22,7 +23,9 @@ class UpdateDownloader {
   }) async {
     final client = _client ?? http.Client();
     try {
-      final response = await client.send(http.Request('GET', release.downloadUrl));
+      if (release.downloadUrl.scheme != 'https') throw const FormatException('Download must use HTTPS');
+      final request = http.Request('GET', release.downloadUrl)..followRedirects = false;
+      final response = await client.send(request);
       if (response.statusCode != 200) throw StateError('Download failed with HTTP ${response.statusCode}');
       var received = 0;
       final stream = response.stream.asyncMap((chunk) async {
@@ -33,7 +36,7 @@ class UpdateDownloader {
           onProgress?.call(DownloadProgress(received, response.contentLength));
           return chunk;
         });
-      return await saveUpdate('update.apk', stream);
+      return await save('update.apk', stream);
     } finally {
       if (_client == null) client.close();
     }

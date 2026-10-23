@@ -16,7 +16,10 @@ void main() {
     final client = _StreamClient();
     final progress = <DownloadProgress>[];
     expect(
-      () => UpdateDownloader(client: client).download(release, onProgress: progress.add, isCancelled: () async => true),
+      () => UpdateDownloader(client: client, save: (_, bytes) async {
+        await for (final _ in bytes) {}
+        return 'update.apk';
+      }).download(release, onProgress: progress.add, isCancelled: () async => true),
       throwsA(isA<UpdateDownloadCancelled>()),
     );
     expect(progress, isEmpty);
