@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import '../tasks/task.dart';
@@ -38,6 +39,7 @@ class ToolExecutionService {
     await repository.update(current);
     var cancelled = false;
     var progressWrite = Future<void>.value();
+    final resultCompleter = Completer<ToolRunResult?>();
 
     final completion = () async {
       try {
@@ -50,21 +52,29 @@ class ToolExecutionService {
           }
         });
         await progressWrite;
-        if (cancelled || current.status == TaskStatus.cancelled) return taskId;
+        if (cancelled || current.status == TaskStatus.cancelled) {
+          resultCompleter.complete(null);
+          return taskId;
+        }
         current = current.transitionTo(TaskStatus.succeeded, outputMetadata: {
           'path': result.outputPath,
           'bytes': '${result.outputBytes}',
           ...result.metadata,
         });
         await repository.update(current);
+        resultCompleter.complete(result);
       } on ToolRunException catch (error) {
         await progressWrite;
-        if (cancelled || current.status == TaskStatus.cancelled) return taskId;
+        if (cancelled || current.status == TaskStatus.cancelled) {
+          resultCompleter.complete(null);
+          return taskId;
+        }
         current = current.transitionTo(TaskStatus.failed, error: TaskError(
           code: error.failure.code,
           message: error.failure.message,
         ));
         await repository.update(current);
+        resultCompleter.complete(null);
         rethrow;
       }
       return taskId;
@@ -73,6 +83,7 @@ class ToolExecutionService {
     return ToolExecution(
       taskId: taskId,
       completed: completion,
+      result: resultCompleter.future,
       isCancelledCallback: () => cancelled,
       cancelCallback: () async {
         if (cancelled || current.status != TaskStatus.running) return;
@@ -91,12 +102,14 @@ class ToolExecution {
   const ToolExecution({
     required this.taskId,
     required this.completed,
+    required this.result,
     required this.isCancelledCallback,
     required this.cancelCallback,
   });
 
   final String taskId;
   final Future<String> completed;
+  final Future<ToolRunResult?> result;
   final bool Function() isCancelledCallback;
   final Future<void> Function() cancelCallback;
 
