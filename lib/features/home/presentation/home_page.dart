@@ -53,7 +53,7 @@ class _HomePageState extends State<HomePage> {
               title: '公式识别',
               subtitle: '手写公式转 LaTeX',
               onPressed: () =>
-                  Navigator.pushReplacementNamed(context, '/tools'),
+                  Navigator.pushReplacementNamed(context, '/formula'),
             ),
             _QuickAction(
               icon: Icons.swap_horiz,
