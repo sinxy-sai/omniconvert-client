@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/ocr/ocr_provider.dart';
+import '../core/ocr/provider_settings.dart';
 import '../core/tools/file_picker_stub.dart'
     if (dart.library.html) '../core/tools/file_picker_web.dart'
     as file_picker;
@@ -34,15 +35,17 @@ enum AppDestination {
   Widget buildPage(
     TaskRepository taskRepository,
     ToolExecutionService toolService,
+    OcrProvider? ocrProvider,
+    OcrProviderSettingsStore providerSettings,
   ) => switch (this) {
     AppDestination.home => HomePage(taskRepository: taskRepository),
     AppDestination.formula => FormulaPage(
-      provider: _UnavailableOcrProvider(),
+      provider: ocrProvider ?? _UnavailableOcrProvider(),
       pickImage: file_picker.pickLocalImage,
     ),
     AppDestination.tasks => const TasksPage(),
     AppDestination.tools => ToolsPage(toolService: toolService),
-    AppDestination.settings => const SettingsPage(),
+    AppDestination.settings => SettingsPage(providerSettings: providerSettings),
   };
 }
 
