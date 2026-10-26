@@ -111,7 +111,7 @@ jobs:
         with:
           path: assets
           merge-multiple: true
-      - name: Build release notes
+      - name: Build release notes with GitHub generated contributors
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -124,21 +124,23 @@ jobs:
           else
             range="$current"
           fi
+          if [ -n "$previous" ]; then
+            gh api --method POST "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
+              -f tag_name="$current" \
+              -f target_commitish="$GITHUB_SHA" \
+              -f previous_tag_name="$previous" \
+              --jq .body > generated-release-notes.md
+          else
+            gh api --method POST "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
+              -f tag_name="$current" \
+              -f target_commitish="$GITHUB_SHA" \
+              --jq .body > generated-release-notes.md
+          fi
           {
-            echo "## Changelog"
+            echo "## Full Changelog"
             git log --pretty=format:'- %s (%h)' "$range"
-            printf '\n\n## Contributors\n\n'
-            if [ -n "$previous" ]; then
-              contributors=$(gh api "repos/$GITHUB_REPOSITORY/compare/$previous...$current" --paginate --jq '.commits[].author.login // empty' | sort -fu)
-            else
-              contributors=$(git log --format='%aE' "$range" | sort -fu | sed -E 's/.*dependabot.*/dependabot[bot]/; s/.*/sinxy-sai/' | sort -fu)
-            fi
-            while read -r login; do
-              [ -n "$login" ] || continue
-              printf '<a href="https://github.com/%s"><img src="https://github.com/%s.png?size=96" width="72" height="72" alt="%s" /></a> ' "$login" "$login" "$login"
-            done <<< "$contributors"
-            printf '\n'
-            printf '\n'
+            printf '\n\n'
+            cat generated-release-notes.md
           } > release-notes.md
       - uses: softprops/action-gh-release@v2
         with:
