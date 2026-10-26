@@ -124,8 +124,17 @@ jobs:
           {
             echo "## Changelog"
             git log --pretty=format:'- %s (%h)' "$range"
-            printf '\n\n## Contributors\n'
-            git log --format='%aN <%aE>' "$range" | sort -fu | sed 's/^/- /'
+            printf '\n\n## Contributors\n\n'
+            if [ -n "$previous" ]; then
+              contributors=$(gh api "repos/$GITHUB_REPOSITORY/compare/$previous...$current" --paginate --jq '.commits[].author.login // empty' | sort -fu)
+            else
+              contributors=$(git log --format='%aE' "$range" | sort -fu | sed -E 's/.*dependabot.*/dependabot[bot]/; s/.*/sinxy-sai/' | sort -fu)
+            fi
+            while read -r login; do
+              [ -n "$login" ] || continue
+              printf '<a href="https://github.com/%s"><img src="https://github.com/%s.png?size=96" width="72" height="72" alt="%s" /></a> ' "$login" "$login" "$login"
+            done <<< "$contributors"
+            printf '\n'
             printf '\n'
           } > release-notes.md
       - uses: softprops/action-gh-release@v2
