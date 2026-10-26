@@ -121,12 +121,32 @@ jobs:
     needs: [metadata, web, android, windows, linux, macos]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
           path: assets
           merge-multiple: true
+      - name: Build release notes
+        shell: bash
+        run: |
+          current="${GITHUB_REF_NAME}"
+          previous=$(git describe --tags --abbrev=0 "$current^" 2>/dev/null || true)
+          if [ -n "$previous" ]; then
+            range="$previous..$current"
+          else
+            range="$current"
+          fi
+          {
+            echo "## Changelog"
+            git log --pretty=format:'- %s (%h)' "$range"
+            printf '\n\n## Contributors\n'
+            git log --format='%aN <%aE>' "$range" | sort -fu | sed 's/^/- /'
+            printf '\n'
+          } > release-notes.md
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          generate_release_notes: true
+          body_path: release-notes.md
           files: assets/*
