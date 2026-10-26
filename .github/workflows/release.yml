@@ -116,6 +116,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
           current="${GITHUB_REF_NAME}"
           previous=$(git describe --tags --abbrev=0 "$current^" 2>/dev/null || true)
           if [ -n "$previous" ]; then
@@ -132,9 +133,38 @@ jobs:
             else
               contributors=$(git log --format='%aE' "$range" | sort -fu | sed -E 's/.*dependabot.*/dependabot[bot]/; s/.*/sinxy-sai/' | sort -fu)
             fi
+            printf '%s\n' "$contributors" > contributors.txt
+            python -m pip install --disable-pip-version-check --quiet Pillow
+            python - <<'PY'
+          from pathlib import Path
+          from urllib.request import Request, urlopen
+
+          from PIL import Image, ImageDraw
+
+          assets = Path("assets")
+          assets.mkdir(exist_ok=True)
+          for login in Path("contributors.txt").read_text().splitlines():
+              login = login.strip()
+              if not login:
+                  continue
+              request = Request(
+                  f"https://github.com/{login}.png?size=256",
+                  headers={"User-Agent": "OmniConvert-release-bot"},
+              )
+              with urlopen(request, timeout=30) as response:
+                  source = Image.open(response).convert("RGBA")
+              size = min(source.size)
+              left = (source.width - size) // 2
+              top = (source.height - size) // 2
+              avatar = source.crop((left, top, left + size, top + size)).resize((72, 72), Image.Resampling.LANCZOS)
+              mask = Image.new("L", (72, 72), 0)
+              ImageDraw.Draw(mask).ellipse((0, 0, 71, 71), fill=255)
+              avatar.putalpha(mask)
+              avatar.save(assets / f"contributor-{login}.png", "PNG", optimize=True)
+          PY
             while read -r login; do
               [ -n "$login" ] || continue
-              printf '<a href="https://github.com/%s"><img src="https://github.com/%s.png?size=96" width="72" height="72" alt="%s" style="border-radius:50%%;object-fit:cover;" /></a> ' "$login" "$login" "$login"
+              printf '<a href="https://github.com/%s"><img src="https://github.com/%s/releases/download/%s/contributor-%s.png" width="72" height="72" alt="%s" /></a> ' "$login" "$GITHUB_REPOSITORY" "$current" "$login" "$login"
             done <<< "$contributors"
             printf '\n'
             printf '\n'
