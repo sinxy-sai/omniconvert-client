@@ -15,10 +15,24 @@
 - Release 资产只包含客户端可下载文件，不上传 contributor 头像或临时生成文件。
 - Windows 安装程序必须创建开始菜单入口、桌面快捷方式和卸载入口。
 - 官网默认展示安装程序；便携 ZIP 作为明确标注的备用下载。
-- macOS 当前先提供未签名 DMG；签名和公证在后续 macOS 发布阶段处理。
-- Linux 当前提供 AppImage；DEB 作为同一发布流程中的附加格式。
+- macOS 使用 DMG 中的 `.app` 和 `/Applications` 快捷入口供用户拖拽安装。未签名构建只能作为测试版；公开推荐下载须完成 Developer ID 签名、公证与 staple。
+- Linux 提供 AppImage 和 DEB。AppImage 是可执行便携包，不保证自动生成桌面或应用菜单图标；DEB 安装后须提供应用菜单入口，桌面快捷方式取决于桌面环境和用户选择。
 - 每个发布资产必须有 HTTPS 下载地址、文件大小和 SHA-256。
 - 发布前必须验证资产名称、版本号、架构和清单内容一致。
+
+---
+
+## Reference implementation: allreal-config
+
+`C:\Users\liubingliang\Desktop\MGI\allreal-config` 当前只有 Windows amd64 和 macOS arm64 两条 Release 工作流，没有 Linux 构建或安装包。
+
+| 平台 | allreal-config 实际做法 | 用户安装体验 |
+| --- | --- | --- |
+| Windows amd64 | Wails 生成 EXE；NSIS 生成 setup EXE；另发便携 ZIP | 安装向导写入 Program Files、开始菜单、桌面快捷方式和卸载入口 |
+| macOS arm64 | Go/Wails 生成 `.app`；`hdiutil` 打包 DMG，内置 Applications 入口；可按凭据签名、公证和 staple | 打开 DMG 后把 App 拖入 Applications；可从 Launchpad 或 Applications 启动 |
+| Linux | 没有发布工作流 | 无现成安装体验可复用 |
+
+OmniConvert 沿用 Flutter 应用，不迁移到 Wails。macOS 参考它的 DMG 布局与签名流程；Linux 需要独立设计。当前 OmniConvert Release 的 macOS ZIP 以及 Linux tar.gz 都是便携归档，不是安装程序。`universal` 文件名只有在实际检查包含 arm64 与 x86_64 两种架构后才能使用。
 
 ---
 
@@ -112,23 +126,31 @@ git commit -m "ci: publish Windows installer and portable package"
 - Consumes Flutter macOS and Linux release bundles.
 - Produces DMG, AppImage, DEB, and retains the portable Linux archive where practical.
 
-- [ ] **Step 1: Create the macOS DMG**
+- [ ] **Step 1: Validate the macOS architecture and bundle**
 
-Stage `OmniConvert.app` in a temporary directory, create a writable DMG with an Applications shortcut, convert it to a compressed read-only DMG, and name it `OmniConvert-{version}-macos-universal.dmg`.
+Run `lipo -archs` against `OmniConvert.app/Contents/MacOS/OmniConvert` and native Rust libraries. If any required binary lacks one of the architectures, publish architecture-specific filenames instead of `macos-universal`. Confirm `Info.plist`, app icon, bundle ID, and executable path before packaging.
 
-- [ ] **Step 2: Create the Linux AppImage**
+- [ ] **Step 2: Create the macOS DMG**
 
-Build an AppDir containing the Flutter bundle, desktop entry, and icon; run `appimagetool`; fail if the executable AppImage is not produced.
+Stage `OmniConvert.app` and a symlink to `/Applications` in a temporary directory. Use `hdiutil` to create a writable DMG, set a clear Finder icon layout, then convert to a compressed read-only DMG. Name the asset according to the verified architecture. After mounting, confirm the `.app` and Applications entry are both visible and that drag-to-Applications works.
 
-- [ ] **Step 3: Create the Linux DEB**
+- [ ] **Step 3: Sign and notarize the macOS public release**
 
-Build a Debian package with `/opt/omniconvert/` application files, a desktop entry under `/usr/share/applications`, and a versioned package name.
+With protected Apple secrets, sign every nested executable and framework, sign the app with hardened runtime, verify with `codesign --verify --deep --strict`, submit the DMG to `notarytool`, and staple the ticket. If credentials are unavailable, publish only a clearly marked unsigned test artifact and do not select it as the recommended public download.
 
-- [ ] **Step 4: Wire the workflow and upload assets**
+- [ ] **Step 4: Create the Linux AppImage**
+
+Build an AppDir containing the Flutter bundle, executable launcher, `.desktop` entry, and icon; run `appimagetool`; fail if the executable AppImage is not produced. On a clean Linux desktop, verify that granting execute permission and launching it works. Label it as a portable app; do not promise that merely running it creates a desktop shortcut.
+
+- [ ] **Step 5: Create the Linux DEB**
+
+Build a Debian package with `/opt/omniconvert/` application files, a launcher under `/usr/bin/omniconvert`, an icon under `/usr/share/icons/hicolor/`, and a `.desktop` file under `/usr/share/applications/`. Include dependencies needed by the Flutter Linux bundle. On a clean Ubuntu VM, verify install, launch from the app menu, and clean removal via `apt`.
+
+- [ ] **Step 6: Wire the workflow and upload assets**
 
 Add package steps to the macOS and Linux jobs and upload the resulting files to the release job.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add .github/workflows/release.yml ops/macos ops/linux
@@ -149,11 +171,11 @@ git commit -m "ci: publish macOS DMG and Linux packages"
 
 - [ ] **Step 1: Map each platform to its primary installer asset**
 
-Use setup EXE for Windows, DMG for macOS, AppImage for Linux, and APK for Android. Do not show the Web app as a downloadable desktop artifact.
+Use setup EXE for Windows, signed/notarized DMG for macOS, DEB for supported Debian/Ubuntu systems, AppImage for other supported Linux desktops, and APK for Android. An unsigned DMG must be clearly marked for testing and must not be the recommended public download. Do not show the Web app as a downloadable desktop artifact.
 
 - [ ] **Step 2: Display alternate formats**
 
-Show portable ZIP and DEB only when GitHub reports those assets. Label them with the platform and format so users do not confuse them with the recommended installer.
+Show portable ZIP, AppImage, and DEB only when GitHub reports those assets. Label them with the platform and format so users do not confuse portable files with installers. Explain that Linux AppImage may require setting executable permission and does not automatically create a desktop icon.
 
 - [ ] **Step 3: Preserve system recommendation and manual selection**
 
@@ -186,7 +208,7 @@ Compare every manifest SHA-256 and file size with the corresponding GitHub Relea
 
 - [ ] **Step 3: Verify installation behavior**
 
-On Windows, install the setup EXE and confirm the desktop shortcut, Start Menu shortcut, launch behavior, and uninstall entry. On macOS, mount the DMG and confirm the Applications link. On Linux, launch the AppImage and install the DEB in a clean VM or runner.
+On Windows, install the setup EXE and confirm the desktop shortcut, Start Menu shortcut, launch behavior, and uninstall entry. On macOS, mount the DMG, drag the app to Applications, verify launch, and check signature/notarization for a public release. On Linux, launch the AppImage after granting execute permission, then install and remove the DEB in a clean Ubuntu VM and confirm the application menu entry.
 
 - [ ] **Step 4: Verify website links**
 
