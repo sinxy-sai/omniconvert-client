@@ -113,6 +113,8 @@ jobs:
           merge-multiple: true
       - name: Build release notes
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           current="${GITHUB_REF_NAME}"
           previous=$(git describe --tags --abbrev=0 "$current^" 2>/dev/null || true)
