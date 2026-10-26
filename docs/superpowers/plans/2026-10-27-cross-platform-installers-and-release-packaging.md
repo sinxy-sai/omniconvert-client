@@ -22,17 +22,7 @@
 
 ---
 
-## Reference implementation: allreal-config
-
-`C:\Users\liubingliang\Desktop\MGI\allreal-config` 当前只有 Windows amd64 和 macOS arm64 两条 Release 工作流，没有 Linux 构建或安装包。
-
-| 平台 | allreal-config 实际做法 | 用户安装体验 |
-| --- | --- | --- |
-| Windows amd64 | Wails 生成 EXE；NSIS 生成 setup EXE；另发便携 ZIP | 安装向导写入 Program Files、开始菜单、桌面快捷方式和卸载入口 |
-| macOS arm64 | Go/Wails 生成 `.app`；`hdiutil` 打包 DMG，内置 Applications 入口；可按凭据签名、公证和 staple | 打开 DMG 后把 App 拖入 Applications；可从 Launchpad 或 Applications 启动 |
-| Linux | 没有发布工作流 | 无现成安装体验可复用 |
-
-OmniConvert 沿用 Flutter 应用，不迁移到 Wails。macOS 参考它的 DMG 布局与签名流程；Linux 需要独立设计。当前 OmniConvert Release 的 macOS ZIP 以及 Linux tar.gz 都是便携归档，不是安装程序。`universal` 文件名只有在实际检查包含 arm64 与 x86_64 两种架构后才能使用。
+当前 OmniConvert 沿用 Flutter 应用，不迁移到其他桌面框架。Windows 使用 NSIS 安装向导；macOS 使用包含 Applications 入口的 DMG；Linux 使用 AppImage 和 DEB。macOS ZIP 以及 Linux tar.gz 属于便携归档，不是安装程序。`universal` 文件名只有在实际检查包含 arm64 与 x86_64 两种架构后才能使用。
 
 ---
 
