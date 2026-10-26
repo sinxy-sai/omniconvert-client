@@ -134,7 +134,7 @@ jobs:
             fi
             while read -r login; do
               [ -n "$login" ] || continue
-              printf '<a href="https://github.com/%s"><img src="https://github.com/%s.png?size=96" width="72" height="72" alt="%s" /></a> ' "$login" "$login" "$login"
+              printf '<a href="https://github.com/%s"><img src="https://github.com/%s.png?size=96" width="72" height="72" alt="%s" style="border-radius:50%%;object-fit:cover;" /></a> ' "$login" "$login" "$login"
             done <<< "$contributors"
             printf '\n'
             printf '\n'
