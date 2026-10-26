@@ -47,4 +47,28 @@ void main() {
       returnsNormally,
     );
   });
+
+  test('maps asynchronous queued responses to a retryable error', () async {
+    final client = MockClient((_) async => http.Response(
+      '{"requestId":"req-queued","status":"queued"}',
+      202,
+    ));
+    final provider = CustomOcrProvider(
+      Uri.parse('https://provider.example.com'),
+      client: client,
+    );
+    expect(
+      () => provider.recognize(
+        [1],
+        mode: 'formula',
+        idempotencyKey: 'key-queued-000001',
+      ),
+      throwsA(
+        isA<OcrProviderException>()
+            .having((error) => error.code, 'code', 'recognition_queued')
+            .having((error) => error.requestId, 'requestId', 'req-queued')
+            .having((error) => error.retryable, 'retryable', true),
+      ),
+    );
+  });
 }
