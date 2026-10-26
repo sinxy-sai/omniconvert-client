@@ -85,7 +85,13 @@ class _FormulaPageState extends State<FormulaPage> {
       _latexController.text = result.latex;
       setState(() => _result = result);
     } on OcrProviderException catch (error) {
-      if (mounted) setState(() => _message = '${error.code}：${error.message}');
+      if (mounted) {
+        setState(() {
+          _message = error.code == 'recognition_queued'
+              ? '识别任务已排队，任务 ID：${error.requestId ?? '未知'}'
+              : '${error.code}：${error.message}';
+        });
+      }
     } catch (error) {
       if (mounted) setState(() => _message = '识别失败：$error');
     } finally {

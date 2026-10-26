@@ -33,6 +33,21 @@ class _FakeProvider implements OcrProvider {
   }
 }
 
+class _QueuedProvider extends _FakeProvider {
+  @override
+  Future<OcrResult> recognize(
+    List<int> image, {
+    required String mode,
+    required String idempotencyKey,
+    Duration timeout = const Duration(seconds: 20),
+  }) => Future.error(const OcrProviderException(
+    'recognition_queued',
+    'Recognition is queued',
+    retryable: true,
+    requestId: 'req-queued',
+  ));
+}
+
 void main() {
   testWidgets('requires consent before recognizing a selected image', (
     tester,
@@ -97,5 +112,26 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('复制 LaTeX'));
     expect(clipboard, [r'\frac{a}{b}']);
+  });
+
+  testWidgets('shows queued recognition task id', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: FormulaPage(
+            provider: _QueuedProvider(),
+            pickImage: () async => const LocalFileSelection(
+              name: 'formula.png',
+              bytes: [1],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('选择图片'));
+    await tester.tap(find.byType(Checkbox));
+    await tester.tap(find.text('开始识别'));
+    await tester.pumpAndSettle();
+    expect(find.text('识别任务已排队，任务 ID：req-queued'), findsOneWidget);
   });
 }
