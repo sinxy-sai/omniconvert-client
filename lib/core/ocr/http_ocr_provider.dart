@@ -48,6 +48,24 @@ abstract class HttpOcrProvider implements OcrProvider {
   }
 
   Future<OcrResult> parseResult(http.Response response) async {
+    if (response.statusCode == 202) {
+      try {
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        throw OcrProviderException(
+          'recognition_queued',
+          'Recognition is queued',
+          retryable: true,
+          requestId: json['requestId'] as String?,
+        );
+      } on OcrProviderException {
+        rethrow;
+      } catch (_) {
+        throw const OcrProviderException(
+          'malformed_response',
+          'Queued recognition response is invalid',
+        );
+      }
+    }
     if (response.statusCode != 200) {
       throw OcrProviderException(
         'provider_error',

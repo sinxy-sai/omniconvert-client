@@ -25,10 +25,16 @@ class OcrResult {
 }
 
 class OcrProviderException implements Exception {
-  const OcrProviderException(this.code, this.message, {this.retryable = false});
+  const OcrProviderException(
+    this.code,
+    this.message, {
+    this.retryable = false,
+    this.requestId,
+  });
   final String code;
   final String message;
   final bool retryable;
+  final String? requestId;
   @override
   String toString() => '$code: $message';
 }
