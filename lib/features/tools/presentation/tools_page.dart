@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/tools/local_file.dart';
+import '../../../core/tools/output_file_name.dart';
 import '../../../core/tools/tool_execution_service.dart';
 import '../../../core/tools/tool_runner.dart';
 
@@ -24,6 +25,8 @@ class _ToolsPageState extends State<ToolsPage> {
   ToolExecution? _execution;
   Uint8List? _selectedBytes;
   String? _selectedName;
+  Uint8List? _outputBytes;
+  String? _outputName;
 
   @override
   void dispose() {
@@ -63,13 +66,12 @@ class _ToolsPageState extends State<ToolsPage> {
       _execution = execution;
       await execution.completed;
       final result = await execution.result;
-      if (result?.outputBytesData != null) {
-        downloadLocalFile(result!.outputBytesData!, output);
-      }
+      _outputBytes = result?.outputBytesData;
+      _outputName = output;
       if (mounted && !execution.isCancelled) {
         setState(() => _message = result?.outputBytesData == null
             ? '任务已完成，结果已写入输出路径。'
-            : '任务已完成，结果已下载。');
+            : '任务已完成，请点击“下载结果”。');
       }
     } on ToolRunException catch (error) {
       if (mounted) {
@@ -87,12 +89,21 @@ class _ToolsPageState extends State<ToolsPage> {
     setState(() {
       _selectedBytes = Uint8List.fromList(selection.bytes);
       _selectedName = selection.name;
-      _inputController.text = selection.name;
+      _inputController.text = selection.path ?? selection.name;
       if (_outputController.text.trim().isEmpty) {
-        final base = selection.name.replaceFirst(RegExp(r'\.[^.]+$'), '');
-        _outputController.text = '$base.${_toolId == 'image_to_pdf' ? 'pdf' : 'jpg'}';
+        _outputController.text = defaultOutputFileName(
+          selection.name,
+          _toolId == 'image_to_pdf' ? 'pdf' : 'jpg',
+        );
       }
     });
+  }
+
+  Future<void> _saveOutput() async {
+    final bytes = _outputBytes;
+    if (bytes == null) return;
+    final saved = await saveLocalFile(bytes, _outputName ?? 'output.bin');
+    if (mounted && saved != null) setState(() => _message = '结果已保存：$saved');
   }
 
   Future<void> _cancel() async {
@@ -134,7 +145,7 @@ class _ToolsPageState extends State<ToolsPage> {
               ),
             ),
           ),
-          if (kIsWeb) ...[
+          ...[
             const SizedBox(width: 12),
             OutlinedButton.icon(
               onPressed: _running ? null : _pickInput,
@@ -149,7 +160,7 @@ class _ToolsPageState extends State<ToolsPage> {
         controller: _outputController,
         enabled: !_running,
         decoration: const InputDecoration(
-          labelText: '输出文件路径',
+          labelText: '输出文件名',
           border: OutlineInputBorder(),
         ),
       ),
@@ -194,6 +205,14 @@ class _ToolsPageState extends State<ToolsPage> {
             padding: const EdgeInsets.all(16),
             child: Text(_message!),
           ),
+        ),
+      ],
+      if (_outputBytes != null) ...[
+        const SizedBox(height: 16),
+        OutlinedButton.icon(
+          onPressed: _running ? null : _saveOutput,
+          icon: const Icon(Icons.download),
+          label: const Text('下载结果'),
         ),
       ],
       const SizedBox(height: 24),
