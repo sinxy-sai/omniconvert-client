@@ -151,6 +151,8 @@ Provider 分为官方云端与用户配置的自建服务。自建服务地址�
 
 发布清单包含平台、架构、版本、最低兼容版本、下载地址、文件大小、SHA-256、签名标识和更新说明。客户端只接受 HTTPS 传输并校验安装包。更新检查失败不影响本地工具使用。
 
+首版客户端发布资产使用稳定命名：`OmniConvert-{version}-windows-x64-setup.exe`（Windows 安装器）、`OmniConvert-{version}-windows-x64.zip`（Windows 便携版）、`OmniConvert-{version}-macos-universal.dmg`（已验证双架构时的 macOS DMG）、`OmniConvert-{version}-linux-x64.AppImage`、`OmniConvert-{version}-linux-x64.deb` 和 `OmniConvert-{version}-android-arm64.apk`。只有在实际二进制同时包含 `arm64` 与 `x86_64` 时才使用 `universal`；否则必须改为架构专用文件名。官网优先推荐 Windows 安装器、macOS DMG 和 Linux AppImage，ZIP 与 DEB 作为其他格式显示。
+
 桌面端按各平台实际安装包类型下载并引导安装，不能把“检查到新版本”等同于“无提示自动替换运行中的程序”。Android 官网 APK 按上述系统安装器流程更新。iOS PWA 随部署更新；未来原生 iOS 的更新遵循实际分发渠道规则。
 
 ## 7. 数据与安全

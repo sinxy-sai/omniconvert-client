@@ -6,6 +6,8 @@
 
 **Architecture:** The site is a static build deployed behind the existing HTTPS server. Release artifacts are immutable files with SHA-256 hashes. The Flutter client reads a version manifest over HTTPS; Android downloads the APK and delegates installation to the system installer.
 
+Desktop download preference follows the installer matrix: Windows setup EXE, signed/notarized macOS DMG, and Linux AppImage are primary links. Windows ZIP and Linux DEB remain available as explicitly labeled alternate formats when the release contains them.
+
 **Tech Stack:** Astro static output, Markdown documentation, Nginx, GitHub Actions, JSON release manifest, and Flutter Web.
 
 **Spec:** `docs/superpowers/specs/2026-10-19-omniconvert-design.md`
