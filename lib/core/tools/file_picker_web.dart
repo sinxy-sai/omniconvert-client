@@ -28,6 +28,11 @@ Future<LocalFileSelection?> pickLocalImage() {
   return completer.future;
 }
 
+Future<String?> saveLocalFile(List<int> bytes, String fileName) async {
+  downloadLocalFile(bytes, fileName);
+  return fileName;
+}
+
 void downloadLocalFile(List<int> bytes, String fileName) {
   final blob = html.Blob([Uint8List.fromList(bytes)]);
   final url = html.Url.createObjectUrlFromBlob(blob);

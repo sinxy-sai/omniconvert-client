@@ -56,9 +56,11 @@ class _OmniConvertAppState extends State<OmniConvertApp> {
     initialRoute: AppDestination.home.path,
     onGenerateRoute: (settings) {
       final destination = AppDestination.fromPath(settings.name);
-      return MaterialPageRoute<void>(
+      return PageRouteBuilder<void>(
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
         settings: RouteSettings(name: destination.path),
-        builder: (_) => _AppShell(
+        pageBuilder: (_, _, _) => _AppShell(
           destination: destination,
           taskRepository: _taskRepository,
           toolService: _toolService,

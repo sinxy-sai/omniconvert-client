@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/ocr/ocr_provider.dart';
 import '../core/ocr/provider_settings.dart';
-import '../core/tools/file_picker_stub.dart'
-    if (dart.library.html) '../core/tools/file_picker_web.dart'
-    as file_picker;
+import '../core/tools/local_file.dart' as file_picker;
 import '../core/tasks/task_repository.dart';
 import '../core/tools/tool_execution_service.dart';
 import '../features/home/presentation/home_page.dart';
