@@ -133,8 +133,8 @@ class _ToolsPageState extends State<ToolsPage> {
           ButtonSegment(value: 'png_to_jpeg', label: Text('图片 → JPEG')),
           ButtonSegment(value: 'compress_image', label: Text('图片压缩')),
           ButtonSegment(value: 'image_to_pdf', label: Text('图片 → PDF')),
-          if (!kIsWeb) const ButtonSegment(value: 'docx_to_pdf', label: Text('DOCX → PDF')),
-          if (!kIsWeb) const ButtonSegment(value: 'mobi_to_pdf', label: Text('MOBI → PDF')),
+          const ButtonSegment(value: 'docx_to_pdf', label: Text('DOCX → PDF')),
+          const ButtonSegment(value: 'mobi_to_pdf', label: Text('MOBI → PDF')),
         ],
         selected: {_toolId},
         onSelectionChanged: _running
@@ -230,10 +230,10 @@ class _ToolsPageState extends State<ToolsPage> {
         title: '手写公式转 LaTeX',
         description: '官方免费额度或自建识别服务，需登录后使用。',
       ),
-      if (!kIsWeb) const _ToolNote(
+      const _ToolNote(
         icon: Icons.description_outlined,
         title: 'DOCX / MOBI → PDF',
-        description: '需要本机安装 LibreOffice 或 Calibre，并确保命令在 PATH 中。',
+        description: '通过服务器转换，桌面端和 Web 端都可使用。',
       ),
     ],
   );

@@ -4,6 +4,7 @@ import 'package:image/image.dart' as image;
 import 'package:pdf/widgets.dart' as pw;
 
 import 'tool_runner.dart';
+import 'backend_conversion_runner.dart';
 
 class WebImageToolRunner implements ToolRunner {
   bool _cancelled = false;
@@ -13,6 +14,9 @@ class WebImageToolRunner implements ToolRunner {
     ToolRequest request, {
     void Function(ToolProgress progress)? onProgress,
   }) async {
+    if (request.toolId == 'docx_to_pdf' || request.toolId == 'mobi_to_pdf') {
+      return const BackendConversionRunner().run(request, onProgress: onProgress);
+    }
     final input = request.inputBytes;
     if (input == null) {
       throw const ToolRunException(

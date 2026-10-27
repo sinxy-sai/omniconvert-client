@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import '../../src/rust/api.dart' as rust;
 import '../../src/rust/rust_initializer.dart';
 import 'tool_runner.dart';
+import 'backend_conversion_runner.dart';
 
 class NativeToolRunner implements ToolRunner {
   @override
@@ -12,7 +13,7 @@ class NativeToolRunner implements ToolRunner {
     void Function(ToolProgress progress)? onProgress,
   }) async {
     if (request.toolId == 'docx_to_pdf' || request.toolId == 'mobi_to_pdf') {
-      return _runExternal(request, onProgress: onProgress);
+      return const BackendConversionRunner().run(request, onProgress: onProgress);
     }
     File? temporaryInput;
     var inputPath = request.inputPath;
