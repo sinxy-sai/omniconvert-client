@@ -45,12 +45,12 @@ class _BlockingRunner implements CancellableToolRunner {
 }
 
 ToolRequest _request() => const ToolRequest(
-      toolId: 'png_to_jpeg',
-      inputPath: r'C:\input.png',
-      outputPath: r'C:\output.jpg',
-      options: {'quality': '90'},
-      maxBytes: 1024,
-    );
+  toolId: 'png_to_jpeg',
+  inputPath: r'C:\input.png',
+  outputPath: r'C:\output.jpg',
+  options: {'quality': '90'},
+  maxBytes: 1024,
+);
 
 void main() {
   test('runs a local tool and persists the successful result', () async {
@@ -77,7 +77,6 @@ void main() {
         failure: const ToolRunFailure(
           code: 'InputTooLarge',
           message: 'Input exceeds the size limit',
-          retryable: false,
         ),
       ),
     );
@@ -102,11 +101,13 @@ void main() {
     final execution = await service.start(_request());
 
     await execution.cancel();
-    runner.result.complete(ToolRunResult(
-      outputPath: _request().outputPath,
-      inputBytes: 12,
-      outputBytes: 8,
-    ));
+    runner.result.complete(
+      ToolRunResult(
+        outputPath: _request().outputPath,
+        inputBytes: 12,
+        outputBytes: 8,
+      ),
+    );
     await execution.completed;
 
     final task = (await repository.listRecent()).single;

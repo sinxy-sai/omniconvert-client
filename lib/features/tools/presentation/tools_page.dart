@@ -46,6 +46,8 @@ class _ToolsPageState extends State<ToolsPage> {
     setState(() {
       _running = true;
       _message = null;
+      _outputBytes = null;
+      _outputName = null;
     });
     final options = <String, String>{'quality': _qualityController.text.trim()};
     if (_toolId == 'image_to_pdf') {
@@ -56,27 +58,32 @@ class _ToolsPageState extends State<ToolsPage> {
       });
     }
     try {
-      final execution = await widget.toolService.start(ToolRequest(
-        toolId: _toolId,
-        inputPath: input,
-        outputPath: output,
-        options: options,
-        inputBytes: _selectedBytes,
-      ));
+      final execution = await widget.toolService.start(
+        ToolRequest(
+          toolId: _toolId,
+          inputPath: input,
+          outputPath: output,
+          options: options,
+          inputBytes: _selectedBytes,
+        ),
+      );
       _execution = execution;
       await execution.completed;
       final result = await execution.result;
       _outputBytes = result?.outputBytesData;
       _outputName = output;
       if (mounted && !execution.isCancelled) {
-        setState(() => _message = result?.outputBytesData == null
-            ? '任务已完成，结果已写入输出路径。'
-            : '任务已完成，请点击“下载结果”。');
+        setState(
+          () => _message = result?.outputBytesData == null
+              ? '任务已完成，结果已写入输出路径。'
+              : '任务已完成，请点击“下载结果”。',
+        );
       }
     } on ToolRunException catch (error) {
       if (mounted) {
-        setState(() => _message =
-            '${error.failure.code}：${error.failure.message}');
+        setState(
+          () => _message = '${error.failure.code}：${error.failure.message}',
+        );
       }
     } finally {
       if (mounted) setState(() => _running = false);

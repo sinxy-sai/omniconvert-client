@@ -75,7 +75,19 @@ jobs:
           flutter-version: '3.47.7'
           channel: stable
           cache: true
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+      - name: Build Rust native library
+        run: cargo build --manifest-path rust/Cargo.toml --release
       - run: flutter build windows --release
+      - name: Bundle Rust native library
+        shell: pwsh
+        run: |
+          $source = 'rust/target/release/omniconvert_core.dll'
+          $destination = 'build/windows/x64/runner/Release/omniconvert_core.dll'
+          if (-not (Test-Path $source)) { throw "Rust native library was not built: $source" }
+          Copy-Item -Force $source $destination
       - shell: pwsh
         run: choco install nsis -y --no-progress
       - name: Package Windows installer and portable archive

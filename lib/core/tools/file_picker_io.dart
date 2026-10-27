@@ -22,8 +22,9 @@ Future<LocalFileSelection?> pickLocalImage() async {
 Future<String?> saveLocalFile(List<int> bytes, String fileName) async {
   final location = await getSaveLocation(suggestedName: fileName);
   if (location == null) return null;
-  await XFile.fromData(Uint8List.fromList(bytes), name: fileName).saveTo(location.path);
+  await XFile.fromData(
+    Uint8List.fromList(bytes),
+    name: fileName,
+  ).saveTo(location.path);
   return location.path;
 }
-
-void downloadLocalFile(List<int> bytes, String fileName) {}

@@ -15,43 +15,38 @@ class WebImageToolRunner implements ToolRunner {
   }) async {
     final input = request.inputBytes;
     if (input == null) {
-      throw const ToolRunException(ToolRunFailure(
-        code: 'InputBytesRequired',
-        message: '浏览器本地处理需要以内存字节提供输入文件。',
-        retryable: false,
-      ));
+      throw const ToolRunException(
+        ToolRunFailure(
+          code: 'InputBytesRequired',
+          message: '浏览器本地处理需要以内存字节提供输入文件。',
+        ),
+      );
     }
     if (input.length > request.maxBytes) {
-      throw const ToolRunException(ToolRunFailure(
-        code: 'InputTooLarge',
-        message: '输入文件超过大小限制。',
-        retryable: false,
-      ));
+      throw const ToolRunException(
+        ToolRunFailure(code: 'InputTooLarge', message: '输入文件超过大小限制。'),
+      );
     }
     _cancelled = false;
     onProgress?.call(const ToolProgress(stage: 'decoding', progress: 0));
     final decoded = image.decodeImage(input);
     if (decoded == null) {
-      throw const ToolRunException(ToolRunFailure(
-        code: 'InvalidInput',
-        message: '无法识别图片数据。',
-        retryable: false,
-      ));
+      throw const ToolRunException(
+        ToolRunFailure(code: 'InvalidInput', message: '无法识别图片数据。'),
+      );
     }
     if (_cancelled) throw _cancelledError;
     onProgress?.call(const ToolProgress(stage: 'encoding', progress: .5));
     final output = switch (request.toolId) {
       'png_to_jpeg' => image.encodeJpg(
-          _flattenAlpha(decoded),
-          quality: _quality(request),
-        ),
+        _flattenAlpha(decoded),
+        quality: _quality(request),
+      ),
       'compress_image' => image.encodeJpg(decoded, quality: _quality(request)),
       'image_to_pdf' => await _toPdf(input),
-      _ => throw const ToolRunException(ToolRunFailure(
-          code: 'UnsupportedTool',
-          message: '浏览器暂不支持该工具。',
-          retryable: false,
-        )),
+      _ => throw const ToolRunException(
+        ToolRunFailure(code: 'UnsupportedTool', message: '浏览器暂不支持该工具。'),
+      ),
     };
     if (_cancelled) throw _cancelledError;
     onProgress?.call(const ToolProgress(stage: 'completed', progress: 1));
@@ -93,11 +88,9 @@ class WebImageToolRunner implements ToolRunner {
     return Uint8List.fromList(await document.save());
   }
 
-  static const _cancelledError = ToolRunException(ToolRunFailure(
-    code: 'Cancelled',
-    message: '任务已取消。',
-    retryable: true,
-  ));
+  static const _cancelledError = ToolRunException(
+    ToolRunFailure(code: 'Cancelled', message: '任务已取消。'),
+  );
 
   void cancel() => _cancelled = true;
 }
