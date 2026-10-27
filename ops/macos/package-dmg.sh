@@ -3,15 +3,26 @@ set -euo pipefail
 
 VERSION="${1:?version required}"
 BUNDLE="${2:-build/macos/Build/Products/Release/OmniConvert.app}"
-OUT="${3:-OmniConvert-${VERSION}-macos-universal.dmg}"
+OUT="${3:-}"
 
 [[ -d "$BUNDLE" ]] || { echo "macOS app bundle not found: $BUNDLE" >&2; exit 1; }
 EXEC="$BUNDLE/Contents/MacOS/OmniConvert"
 [[ -x "$EXEC" ]] || { echo "app executable not found: $EXEC" >&2; exit 1; }
 
 ARCHS="$(lipo -archs "$EXEC" 2>/dev/null || true)"
-if [[ "$ARCHS" != *"arm64"* || "$ARCHS" != *"x86_64"* ]]; then
-  echo "macOS app is not universal (architectures: ${ARCHS:-unknown}); refuse the universal asset name" >&2
+if [[ "$ARCHS" == *"arm64"* && "$ARCHS" == *"x86_64"* ]]; then
+  ARCH_LABEL="universal"
+elif [[ "$ARCHS" == *"arm64"* ]]; then
+  ARCH_LABEL="arm64"
+elif [[ "$ARCHS" == *"x86_64"* ]]; then
+  ARCH_LABEL="x64"
+else
+  echo "unable to determine macOS architecture: ${ARCHS:-unknown}" >&2
+  exit 1
+fi
+[[ -n "$OUT" ]] || OUT="OmniConvert-${VERSION}-macos-${ARCH_LABEL}.dmg"
+if [[ "$ARCH_LABEL" != "universal" && "$OUT" == *"macos-universal"* ]]; then
+  echo "refusing universal filename for ${ARCH_LABEL} app" >&2
   exit 1
 fi
 

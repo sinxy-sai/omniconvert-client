@@ -135,14 +135,18 @@ jobs:
       - name: Package macOS DMG and portable ZIP
         shell: bash
         run: |
-          bash ops/macos/package-dmg.sh "${{ needs.metadata.outputs.version }}" build/macos/Build/Products/Release/OmniConvert.app "OmniConvert-${{ needs.metadata.outputs.version }}-macos-universal.dmg"
-          ditto -c -k --sequesterRsrc --keepParent build/macos/Build/Products/Release/OmniConvert.app "OmniConvert-${{ needs.metadata.outputs.version }}-macos-universal.zip"
+          archs=$(lipo -archs build/macos/Build/Products/Release/OmniConvert.app/Contents/MacOS/OmniConvert)
+          if [[ "$archs" == *arm64* && "$archs" == *x86_64* ]]; then arch_label=universal;
+          elif [[ "$archs" == *arm64* ]]; then arch_label=arm64;
+          else arch_label=x64; fi
+          bash ops/macos/package-dmg.sh "${{ needs.metadata.outputs.version }}" build/macos/Build/Products/Release/OmniConvert.app "OmniConvert-${{ needs.metadata.outputs.version }}-macos-${arch_label}.dmg"
+          ditto -c -k --sequesterRsrc --keepParent build/macos/Build/Products/Release/OmniConvert.app "OmniConvert-${{ needs.metadata.outputs.version }}-macos-${arch_label}.zip"
       - uses: actions/upload-artifact@v4
         with:
           name: macos
           path: |
-            OmniConvert-${{ needs.metadata.outputs.version }}-macos-universal.dmg
-            OmniConvert-${{ needs.metadata.outputs.version }}-macos-universal.zip
+            OmniConvert-${{ needs.metadata.outputs.version }}-macos-*.dmg
+            OmniConvert-${{ needs.metadata.outputs.version }}-macos-*.zip
 
   release:
     needs: [metadata, android, windows, linux, macos]
@@ -221,3 +225,16 @@ jobs:
           tag_name: ${{ github.ref_name }}
           body_path: release-notes.md
           files: assets/*
+      - name: Notify website repository
+        env:
+          GH_TOKEN: ${{ secrets.SITE_REPO_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "SITE_REPO_TOKEN is not configured; website rebuild must be triggered manually."
+            exit 0
+          fi
+          gh api repos/sinxy-sai/omniconvert-site/dispatches \
+            --method POST \
+            -f event_type=client-release \
+            -f client_version="${{ needs.metadata.outputs.version }}" \
+            -f client_tag="${{ github.ref_name }}"
