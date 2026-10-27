@@ -159,19 +159,29 @@ jobs:
           channel: stable
           cache: true
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
       - name: Build Rust native library
-        run: cargo build --manifest-path rust/Cargo.toml --release
+        shell: bash
+        run: |
+          cargo build --manifest-path rust/Cargo.toml --release --target aarch64-apple-darwin
+          cargo build --manifest-path rust/Cargo.toml --release --target x86_64-apple-darwin
       - run: flutter build macos --release
       - name: Bundle Rust native library
         shell: bash
-        run: cp rust/target/release/libomniconvert_core.dylib build/macos/Build/Products/Release/OmniConvert.app/Contents/MacOS/libomniconvert_core.dylib
+        run: |
+          lipo -create \
+            rust/target/aarch64-apple-darwin/release/libomniconvert_core.dylib \
+            rust/target/x86_64-apple-darwin/release/libomniconvert_core.dylib \
+            -output build/macos/Build/Products/Release/OmniConvert.app/Contents/MacOS/libomniconvert_core.dylib
       - name: Package macOS DMG and portable ZIP
         shell: bash
         run: |
           archs=$(lipo -archs build/macos/Build/Products/Release/OmniConvert.app/Contents/MacOS/OmniConvert)
-          if [[ "$archs" == *arm64* && "$archs" == *x86_64* ]]; then arch_label=universal;
-          elif [[ "$archs" == *arm64* ]]; then arch_label=arm64;
-          else arch_label=x64; fi
+          rust_archs=$(lipo -archs build/macos/Build/Products/Release/OmniConvert.app/Contents/MacOS/libomniconvert_core.dylib)
+          [[ "$archs" == *arm64* && "$archs" == *x86_64* ]]
+          [[ "$rust_archs" == *arm64* && "$rust_archs" == *x86_64* ]]
+          arch_label=universal
           bash ops/macos/package-dmg.sh "${{ needs.metadata.outputs.version }}" build/macos/Build/Products/Release/OmniConvert.app "OmniConvert-${{ needs.metadata.outputs.version }}-macos-${arch_label}.dmg"
           ditto -c -k --sequesterRsrc --keepParent build/macos/Build/Products/Release/OmniConvert.app "OmniConvert-${{ needs.metadata.outputs.version }}-macos-${arch_label}.zip"
       - uses: actions/upload-artifact@v4
