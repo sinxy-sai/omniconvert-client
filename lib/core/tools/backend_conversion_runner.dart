@@ -5,14 +5,14 @@ import 'package:http/http.dart' as http;
 import 'tool_runner.dart';
 
 class BackendConversionRunner {
-  const BackendConversionRunner({http.Client? client}) : _client = client;
+  const BackendConversionRunner({this.client});
 
   static const baseUrl = String.fromEnvironment(
     'OMNICONVERT_API_BASE_URL',
     defaultValue: 'https://www.sinxysai.site/api/v1',
   );
 
-  final http.Client? _client;
+  final http.Client? client;
 
   Future<ToolRunResult> run(
     ToolRequest request, {
@@ -24,11 +24,11 @@ class BackendConversionRunner {
         code: 'InputBytesRequired', message: '文档转换需要文件内容。',
       ));
     }
-    final client = _client ?? http.Client();
+    final httpClient = client ?? http.Client();
     final boundary = '----OmniConvertBoundary${DateTime.now().microsecondsSinceEpoch}';
     onProgress?.call(const ToolProgress(stage: 'uploading', progress: 0));
     try {
-      final response = await client.post(
+      final response = await httpClient.post(
         Uri.parse('$baseUrl/conversions/pdf'),
         body: _multipartBody(input, request.inputPath, boundary),
         headers: {'Content-Type': 'multipart/form-data; boundary=$boundary'},
@@ -47,7 +47,7 @@ class BackendConversionRunner {
     } catch (error) {
       throw ToolRunException(ToolRunFailure(code: 'ConversionUnavailable', message: '无法连接文档转换服务：$error'));
     } finally {
-      if (_client == null) client.close();
+      if (client == null) httpClient.close();
     }
   }
 

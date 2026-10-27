@@ -133,8 +133,8 @@ class _ToolsPageState extends State<ToolsPage> {
           ButtonSegment(value: 'png_to_jpeg', label: Text('图片 → JPEG')),
           ButtonSegment(value: 'compress_image', label: Text('图片压缩')),
           ButtonSegment(value: 'image_to_pdf', label: Text('图片 → PDF')),
-          const ButtonSegment(value: 'docx_to_pdf', label: Text('DOCX → PDF')),
-          const ButtonSegment(value: 'mobi_to_pdf', label: Text('MOBI → PDF')),
+          ButtonSegment(value: 'docx_to_pdf', label: Text('DOCX → PDF')),
+          ButtonSegment(value: 'mobi_to_pdf', label: Text('MOBI → PDF')),
         ],
         selected: {_toolId},
         onSelectionChanged: _running
