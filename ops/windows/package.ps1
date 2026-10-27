@@ -16,7 +16,8 @@ if (-not $makensis) {
     $makensis = Get-Item $defaultMakensis
   }
 }
-if (-not $makensis) { throw "makensis was not found on PATH. Install NSIS before packaging." }
+$makensisPath = if ($makensis -is [System.Management.Automation.CommandInfo]) { $makensis.Source } else { $makensis.FullName }
+if (-not $makensisPath) { throw "makensis was not found on PATH. Install NSIS before packaging." }
 $exe = Join-Path $buildPath "omniconvert.exe"
 if (-not (Test-Path $exe)) { throw "Flutter release executable not found: $exe" }
 
@@ -27,7 +28,7 @@ if (Test-Path $setup) { Remove-Item -Force $setup }
 Compress-Archive -Path (Join-Path $buildPath "*") -DestinationPath $zip
 
 $nsi = Join-Path $PSScriptRoot "installer.nsi"
-& $makensis.Source "/DAPP_VERSION=$Version" "/DSOURCE_DIR=$buildPath" "/DOUTPUT_FILE=$setup" $nsi
+& $makensisPath "/DAPP_VERSION=$Version" "/DSOURCE_DIR=$buildPath" "/DOUTPUT_FILE=$setup" $nsi
 if ($LASTEXITCODE -ne 0) { throw "NSIS failed with exit code $LASTEXITCODE" }
 if (-not (Test-Path $zip)) { throw "Portable package was not produced: $zip" }
 if (-not (Test-Path $setup)) { throw "Installer was not produced: $setup" }
