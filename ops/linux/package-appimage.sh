@@ -24,11 +24,12 @@ Type=Application
 Categories=Utility;Office;
 DESKTOP
 cp "$APPDIR/omniconvert.desktop" "$APPDIR/usr/share/applications/omniconvert.desktop"
-if [[ -f "$ROOT/assets/omniconvert.png" ]]; then
-  cp "$ROOT/assets/omniconvert.png" "$APPDIR/omniconvert.png"
-  cp "$ROOT/assets/omniconvert.png" "$APPDIR/usr/share/icons/hicolor/256x256/apps/omniconvert.png"
+if [[ -f "$ROOT/web/icons/Icon-512.png" ]]; then
+  cp "$ROOT/web/icons/Icon-512.png" "$APPDIR/omniconvert.png"
+  cp "$ROOT/web/icons/Icon-512.png" "$APPDIR/usr/share/icons/hicolor/256x256/apps/omniconvert.png"
 else
-  sed -i '/^Icon=/d' "$APPDIR/omniconvert.desktop"
+  echo "required AppImage icon missing: $ROOT/web/icons/Icon-512.png" >&2
+  exit 1
 fi
 cat > "$APPDIR/AppRun" <<'RUNNER'
 #!/usr/bin/env sh

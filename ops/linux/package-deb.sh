@@ -23,7 +23,7 @@ Terminal=false
 Type=Application
 Categories=Utility;Office;
 DESKTOP
-if [[ -f "$ROOT/assets/omniconvert.png" ]]; then cp "$ROOT/assets/omniconvert.png" "$PKG/usr/share/icons/hicolor/256x256/apps/omniconvert.png"; fi
+if [[ -f "$ROOT/web/icons/Icon-512.png" ]]; then cp "$ROOT/web/icons/Icon-512.png" "$PKG/usr/share/icons/hicolor/256x256/apps/omniconvert.png"; fi
 cat > "$PKG/DEBIAN/control" <<CONTROL
 Package: omniconvert
 Version: ${VERSION}
