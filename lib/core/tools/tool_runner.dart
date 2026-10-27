@@ -16,36 +16,6 @@ class ToolRequest {
   final Map<String, String> options;
   final int maxBytes;
   final Uint8List? inputBytes;
-
-  @override
-  bool operator ==(Object other) =>
-      other is ToolRequest &&
-      toolId == other.toolId &&
-      inputPath == other.inputPath &&
-      outputPath == other.outputPath &&
-      maxBytes == other.maxBytes &&
-      _bytesEqual(inputBytes, other.inputBytes) &&
-      _mapsEqual(options, other.options);
-
-  @override
-  int get hashCode => Object.hash(toolId, inputPath, outputPath, maxBytes);
-}
-
-bool _bytesEqual(Uint8List? left, Uint8List? right) {
-  if (left == null || right == null) return left == right;
-  if (left.length != right.length) return false;
-  for (var index = 0; index < left.length; index++) {
-    if (left[index] != right[index]) return false;
-  }
-  return true;
-}
-
-bool _mapsEqual(Map<String, String> left, Map<String, String> right) {
-  if (left.length != right.length) return false;
-  for (final entry in left.entries) {
-    if (right[entry.key] != entry.value) return false;
-  }
-  return true;
 }
 
 class ToolProgress {
@@ -72,15 +42,10 @@ class ToolRunResult {
 }
 
 class ToolRunFailure {
-  const ToolRunFailure({
-    required this.code,
-    required this.message,
-    required this.retryable,
-  });
+  const ToolRunFailure({required this.code, required this.message});
 
   final String code;
   final String message;
-  final bool retryable;
 }
 
 class ToolRunException implements Exception {

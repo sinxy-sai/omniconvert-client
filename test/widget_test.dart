@@ -27,7 +27,9 @@ void main() {
     expect(find.text('任务记录'), findsOneWidget);
   });
 
-  testWidgets('recent failed task can be retried from home', (tester) async {
+  testWidgets('recent failed task is shown without a false retry action', (
+    tester,
+  ) async {
     final repository = InMemoryTaskRepository();
     final created = DateTime.utc(2026, 1, 1);
     final task = Task(
@@ -55,10 +57,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('lecture.png'), findsOneWidget);
     expect(find.textContaining('失败'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('retry-image-1')));
-    await tester.pump();
-    await tester.pumpAndSettle();
-    expect((await repository.listRecent()).single.status, TaskStatus.queued);
-    expect(find.textContaining('等待中'), findsOneWidget);
+    expect(find.byKey(const Key('retry-image-1')), findsNothing);
   });
 }

@@ -46,6 +46,8 @@ class _ToolsPageState extends State<ToolsPage> {
     setState(() {
       _running = true;
       _message = null;
+      _outputBytes = null;
+      _outputName = null;
     });
     final options = <String, String>{'quality': _qualityController.text.trim()};
     if (_toolId == 'image_to_pdf') {
@@ -56,27 +58,32 @@ class _ToolsPageState extends State<ToolsPage> {
       });
     }
     try {
-      final execution = await widget.toolService.start(ToolRequest(
-        toolId: _toolId,
-        inputPath: input,
-        outputPath: output,
-        options: options,
-        inputBytes: _selectedBytes,
-      ));
+      final execution = await widget.toolService.start(
+        ToolRequest(
+          toolId: _toolId,
+          inputPath: input,
+          outputPath: output,
+          options: options,
+          inputBytes: _selectedBytes,
+        ),
+      );
       _execution = execution;
       await execution.completed;
       final result = await execution.result;
       _outputBytes = result?.outputBytesData;
       _outputName = output;
       if (mounted && !execution.isCancelled) {
-        setState(() => _message = result?.outputBytesData == null
-            ? '任务已完成，结果已写入输出路径。'
-            : '任务已完成，请点击“下载结果”。');
+        setState(
+          () => _message = result?.outputBytesData == null
+              ? '任务已完成，结果已写入输出路径。'
+              : '任务已完成，请点击“下载结果”。',
+        );
       }
     } on ToolRunException catch (error) {
       if (mounted) {
-        setState(() => _message =
-            '${error.failure.code}：${error.failure.message}');
+        setState(
+          () => _message = '${error.failure.code}：${error.failure.message}',
+        );
       }
     } finally {
       if (mounted) setState(() => _running = false);
@@ -84,7 +91,7 @@ class _ToolsPageState extends State<ToolsPage> {
   }
 
   Future<void> _pickInput() async {
-    final selection = await pickLocalImage();
+    final selection = await pickLocalFile();
     if (selection == null || !mounted) return;
     setState(() {
       _selectedBytes = Uint8List.fromList(selection.bytes);
@@ -93,7 +100,7 @@ class _ToolsPageState extends State<ToolsPage> {
       if (_outputController.text.trim().isEmpty) {
         _outputController.text = defaultOutputFileName(
           selection.name,
-          _toolId == 'image_to_pdf' ? 'pdf' : 'jpg',
+          _toolId == 'image_to_pdf' || _toolId.endsWith('_to_pdf') ? 'pdf' : 'jpg',
         );
       }
     });
@@ -123,9 +130,11 @@ class _ToolsPageState extends State<ToolsPage> {
       const SizedBox(height: 24),
       SegmentedButton<String>(
         segments: const [
-          ButtonSegment(value: 'png_to_jpeg', label: Text('PNG → JPEG')),
+          ButtonSegment(value: 'png_to_jpeg', label: Text('图片 → JPEG')),
           ButtonSegment(value: 'compress_image', label: Text('图片压缩')),
           ButtonSegment(value: 'image_to_pdf', label: Text('图片 → PDF')),
+          ButtonSegment(value: 'docx_to_pdf', label: Text('DOCX → PDF')),
+          ButtonSegment(value: 'mobi_to_pdf', label: Text('MOBI → PDF')),
         ],
         selected: {_toolId},
         onSelectionChanged: _running
@@ -224,7 +233,7 @@ class _ToolsPageState extends State<ToolsPage> {
       const _ToolNote(
         icon: Icons.description_outlined,
         title: 'DOCX / MOBI → PDF',
-        description: '桌面端外部转换器适配器将在后续阶段开放。',
+        description: '通过服务器转换，桌面端和 Web 端都可使用。',
       ),
     ],
   );

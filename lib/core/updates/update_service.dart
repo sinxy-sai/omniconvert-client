@@ -43,6 +43,11 @@ class UpdateService {
       }
       return ('android', abi);
     }
-    return null;
+    return switch (defaultTargetPlatform) {
+      TargetPlatform.windows => ('windows', 'x64'),
+      TargetPlatform.linux => ('linux', 'x64'),
+      TargetPlatform.macOS => ('macos', 'universal'),
+      _ => null,
+    };
   }
 }

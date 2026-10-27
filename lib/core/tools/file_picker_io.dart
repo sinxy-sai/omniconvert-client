@@ -5,11 +5,8 @@ import 'package:file_selector/file_selector.dart';
 
 import 'local_file.dart';
 
-Future<LocalFileSelection?> pickLocalImage() async {
-  const typeGroup = XTypeGroup(
-    label: 'images',
-    extensions: <String>['png', 'jpg', 'jpeg', 'webp'],
-  );
+Future<LocalFileSelection?> pickLocalFile() async {
+  const typeGroup = XTypeGroup(label: 'supported files');
   final file = await openFile(acceptedTypeGroups: <XTypeGroup>[typeGroup]);
   if (file == null) return null;
   return LocalFileSelection(
@@ -22,8 +19,9 @@ Future<LocalFileSelection?> pickLocalImage() async {
 Future<String?> saveLocalFile(List<int> bytes, String fileName) async {
   final location = await getSaveLocation(suggestedName: fileName);
   if (location == null) return null;
-  await XFile.fromData(Uint8List.fromList(bytes), name: fileName).saveTo(location.path);
+  await XFile.fromData(
+    Uint8List.fromList(bytes),
+    name: fileName,
+  ).saveTo(location.path);
   return location.path;
 }
-
-void downloadLocalFile(List<int> bytes, String fileName) {}

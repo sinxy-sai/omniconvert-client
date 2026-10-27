@@ -46,5 +46,4 @@ class OcrProviderSettingsStore {
     await _backend.writeEndpoint(endpoint.toString());
   }
 
-  Future<void> clearCustomEndpoint() => _backend.writeEndpoint(null);
 }

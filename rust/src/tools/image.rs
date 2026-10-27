@@ -22,7 +22,7 @@ impl ToolOperation for PngToJpeg {
         "png_to_jpeg"
     }
     fn accepts_input_extension(&self, extension: &str) -> bool {
-        extension == "png"
+        matches!(extension, "png" | "jpg" | "jpeg" | "webp")
     }
     fn accepts_output_extension(&self, extension: &str) -> bool {
         matches!(extension, "jpg" | "jpeg")
@@ -39,7 +39,7 @@ impl ToolOperation for PngToJpeg {
         check_options(request, &["quality", "background", "max_pixels"])?;
         let quality = quality(request)?;
         let background = background(request)?;
-        let image = decode_image(request, input, ImageFormat::Png)?;
+        let image = decode_image(request, input, input_format(request)?)?;
         encode_jpeg(image, output, quality, background, progress, cancel)
     }
 }
@@ -49,7 +49,7 @@ impl ToolOperation for CompressImage {
         "compress_image"
     }
     fn accepts_input_extension(&self, extension: &str) -> bool {
-        matches!(extension, "png" | "jpg" | "jpeg")
+        matches!(extension, "png" | "jpg" | "jpeg" | "webp")
     }
     fn accepts_output_extension(&self, extension: &str) -> bool {
         matches!(extension, "jpg" | "jpeg")
@@ -86,7 +86,7 @@ impl ToolOperation for ImageToPdf {
         "image_to_pdf"
     }
     fn accepts_input_extension(&self, extension: &str) -> bool {
-        matches!(extension, "png" | "jpg" | "jpeg")
+        matches!(extension, "png" | "jpg" | "jpeg" | "webp")
     }
     fn accepts_output_extension(&self, extension: &str) -> bool {
         extension == "pdf"
@@ -230,6 +230,7 @@ fn input_format(request: &ToolRequest) -> Result<ImageFormat, ToolError> {
     {
         "png" => Ok(ImageFormat::Png),
         "jpg" | "jpeg" => Ok(ImageFormat::Jpeg),
+        "webp" => Ok(ImageFormat::WebP),
         _ => Err(invalid("Unsupported image format")),
     }
 }

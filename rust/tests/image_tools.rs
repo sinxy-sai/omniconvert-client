@@ -165,6 +165,22 @@ fn lower_jpeg_quality_reduces_output_size_for_a_patterned_image() {
 }
 
 #[test]
+fn compress_image_accepts_webp_input() {
+    let dir = tempfile::tempdir().unwrap();
+    let input = dir.path().join("source.webp");
+    let output = dir.path().join("compressed.jpg");
+    DynamicImage::ImageRgba8(RgbaImage::from_pixel(2, 1, Rgba([20, 100, 220, 255])))
+        .save_with_format(&input, ImageFormat::WebP)
+        .unwrap();
+
+    ToolRunner::new(CompressImage)
+        .run(request("compress_image", &input, &output, &[]), |_| {})
+        .unwrap();
+
+    assert_eq!(image::open(output).unwrap().dimensions(), (2, 1));
+}
+
+#[test]
 fn image_to_pdf_creates_one_landscape_a4_page() {
     let dir = tempfile::tempdir().unwrap();
     let input = dir.path().join("figure.png");

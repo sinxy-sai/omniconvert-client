@@ -19,7 +19,8 @@ class ToolExecutionService {
 
   Future<ToolExecution> start(ToolRequest request) async {
     final now = DateTime.now().toUtc();
-    final taskId = '${request.toolId}-${now.microsecondsSinceEpoch}-${Random().nextInt(1 << 20)}';
+    final taskId =
+        '${request.toolId}-${now.microsecondsSinceEpoch}-${Random().nextInt(1 << 20)}';
     final queued = Task(
       taskId: taskId,
       idempotencyKey: taskId,
@@ -43,24 +44,33 @@ class ToolExecutionService {
 
     final completion = () async {
       try {
-        final result = await runner.run(request, onProgress: (progress) {
-          if (!cancelled && current.status == TaskStatus.running &&
-              progress.progress >= current.progress) {
-            final progressed = current.withProgress(progress.progress);
-            current = progressed;
-            progressWrite = progressWrite.then((_) => repository.update(progressed));
-          }
-        });
+        final result = await runner.run(
+          request,
+          onProgress: (progress) {
+            if (!cancelled &&
+                current.status == TaskStatus.running &&
+                progress.progress >= current.progress) {
+              final progressed = current.withProgress(progress.progress);
+              current = progressed;
+              progressWrite = progressWrite.then(
+                (_) => repository.update(progressed),
+              );
+            }
+          },
+        );
         await progressWrite;
         if (cancelled || current.status == TaskStatus.cancelled) {
           resultCompleter.complete(null);
           return taskId;
         }
-        current = current.transitionTo(TaskStatus.succeeded, outputMetadata: {
-          'path': result.outputPath,
-          'bytes': '${result.outputBytes}',
-          ...result.metadata,
-        });
+        current = current.transitionTo(
+          TaskStatus.succeeded,
+          outputMetadata: {
+            'path': result.outputPath,
+            'bytes': '${result.outputBytes}',
+            ...result.metadata,
+          },
+        );
         await repository.update(current);
         resultCompleter.complete(result);
       } on ToolRunException catch (error) {
@@ -69,10 +79,13 @@ class ToolExecutionService {
           resultCompleter.complete(null);
           return taskId;
         }
-        current = current.transitionTo(TaskStatus.failed, error: TaskError(
-          code: error.failure.code,
-          message: error.failure.message,
-        ));
+        current = current.transitionTo(
+          TaskStatus.failed,
+          error: TaskError(
+            code: error.failure.code,
+            message: error.failure.message,
+          ),
+        );
         await repository.update(current);
         resultCompleter.complete(null);
         rethrow;

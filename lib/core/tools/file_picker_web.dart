@@ -6,9 +6,9 @@ import 'dart:typed_data';
 
 import 'local_file.dart';
 
-Future<LocalFileSelection?> pickLocalImage() {
+Future<LocalFileSelection?> pickLocalFile() {
   final completer = Completer<LocalFileSelection?>();
-  final input = html.FileUploadInputElement()..accept = 'image/*';
+  final input = html.FileUploadInputElement();
   input.onChange.first.then((_) async {
     final file = input.files?.firstOrNull;
     if (file == null) {
@@ -17,10 +17,12 @@ Future<LocalFileSelection?> pickLocalImage() {
     }
     final reader = html.FileReader();
     reader.onLoad.first.then((_) {
-      completer.complete(LocalFileSelection(
-        name: file.name,
-        bytes: Uint8List.view(reader.result as ByteBuffer),
-      ));
+      completer.complete(
+        LocalFileSelection(
+          name: file.name,
+          bytes: Uint8List.view(reader.result as ByteBuffer),
+        ),
+      );
     });
     reader.readAsArrayBuffer(file);
   });
@@ -29,11 +31,6 @@ Future<LocalFileSelection?> pickLocalImage() {
 }
 
 Future<String?> saveLocalFile(List<int> bytes, String fileName) async {
-  downloadLocalFile(bytes, fileName);
-  return fileName;
-}
-
-void downloadLocalFile(List<int> bytes, String fileName) {
   final blob = html.Blob([Uint8List.fromList(bytes)]);
   final url = html.Url.createObjectUrlFromBlob(blob);
   html.AnchorElement(href: url)
@@ -42,4 +39,5 @@ void downloadLocalFile(List<int> bytes, String fileName) {
   Future<void>.delayed(const Duration(seconds: 1), () {
     html.Url.revokeObjectUrl(url);
   });
+  return fileName;
 }
