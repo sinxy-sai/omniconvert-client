@@ -22,6 +22,8 @@
 
 ## 待验证和待做
 
+安装包与发布方案已接入 CI：Windows 生成 NSIS 安装器和 ZIP；macOS 生成 DMG 和 ZIP，且 universal 命名要求双架构；Linux 生成 AppImage、DEB 和 tar.gz；Android split-per-ABI 产出 arm64 APK，正式 tag 构建要求发布签名密钥。Release job 生成 `SHA256SUMS.txt`，官网下载页优先显示安装器及其他格式。真实 tag 发布、macOS Developer ID 签名与公证、各平台安装行为及官网线上清单仍待验证。
+
 - Windows 桌面调试构建未完成：本机缺少 Flutter 所需的 Visual Studio C++ 工作负载；Flutter Windows 构建产物下载曾因 TLS 握手中断。Android SDK 本机未安装。
 - 原生发行包中 Rust 库的自动编译和打包尚未接入；当前跨语言健康检查从开发构建目录加载动态库。
 - DOCX/MOBI 适配器尚未接入 Flutter 工具页；浏览器本地图片实现、官网发布流程及 OCR 服务属于后续计划。
