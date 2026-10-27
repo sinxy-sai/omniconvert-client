@@ -31,9 +31,6 @@ trap 'rm -rf "$STAGE"' EXIT
 cp -R "$BUNDLE" "$STAGE/OmniConvert.app"
 ln -s /Applications "$STAGE/Applications"
 
-RW="$STAGE/OmniConvert-rw.dmg"
-hdiutil create -volname "OmniConvert ${VERSION}" -srcfolder "$STAGE" -ov -format UDRW "$RW" >/dev/null
-hdiutil convert "$RW" -format UDZO -ov -o "$OUT" >/dev/null
-rm -f "$RW"
+hdiutil create -volname "OmniConvert ${VERSION}" -srcfolder "$STAGE" -ov -format UDZO "$OUT" >/dev/null
 [[ -f "$OUT" ]] || { echo "DMG was not created: $OUT" >&2; exit 1; }
 echo "$OUT"

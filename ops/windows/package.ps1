@@ -10,6 +10,12 @@ $root = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 $buildPath = (Resolve-Path (Join-Path $root $BuildDir)).Path
 $outputPath = (New-Item -ItemType Directory -Force -Path (Join-Path $root $OutputDir)).FullName
 $makensis = Get-Command makensis -ErrorAction SilentlyContinue
+if (-not $makensis) {
+  $defaultMakensis = Join-Path ${env:ProgramFiles(x86)} 'NSIS\makensis.exe'
+  if (Test-Path $defaultMakensis) {
+    $makensis = Get-Item $defaultMakensis
+  }
+}
 if (-not $makensis) { throw "makensis was not found on PATH. Install NSIS before packaging." }
 $exe = Join-Path $buildPath "omniconvert.exe"
 if (-not (Test-Path $exe)) { throw "Flutter release executable not found: $exe" }
