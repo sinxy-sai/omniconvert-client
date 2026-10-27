@@ -115,7 +115,9 @@ class NativeToolRunner implements ToolRunner {
         ));
       }
       final source = request.toolId == 'docx_to_pdf'
-          ? File('${temp.path}${Platform.pathSeparator}${input.uri.pathSegments.last.replaceFirst(RegExp(r'\\.docx$', caseSensitive: false), '')}.pdf')
+          ? File(
+              '${temp.path}${Platform.pathSeparator}${input.path.split(RegExp(r'[\\/]')).last.replaceFirst(RegExp(r'\.docx$', caseSensitive: false), '')}.pdf',
+            )
           : generated;
       if (!await source.exists()) {
         throw const ToolRunException(ToolRunFailure(
