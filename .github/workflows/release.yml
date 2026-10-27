@@ -220,4 +220,5 @@ jobs:
           fi
           gh api repos/sinxy-sai/omniconvert-site/dispatches \
             --method POST \
-            -f event_type=client-release
+            -f event_type=client-release \
+            -f client_payload[client_ref]="$GITHUB_REF_NAME"
