@@ -41,7 +41,7 @@ enum AppDestination {
       provider: ocrProvider ?? _UnavailableOcrProvider(),
       pickImage: file_picker.pickLocalImage,
     ),
-    AppDestination.tasks => const TasksPage(),
+    AppDestination.tasks => TasksPage(repository: taskRepository),
     AppDestination.tools => ToolsPage(toolService: toolService),
     AppDestination.settings => SettingsPage(providerSettings: providerSettings),
   };

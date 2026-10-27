@@ -14,23 +14,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  late Future<List<Task>> _recentTasks = widget.taskRepository.listRecent();
-
-  Future<void> _retry(Task task) async {
-    try {
-      await widget.taskRepository.update(task.transitionTo(TaskStatus.queued));
-      if (mounted) {
-        setState(() {
-          _recentTasks = widget.taskRepository.listRecent();
-        });
-      }
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('重试失败：$error')));
-      }
-    }
-  }
+  late final Future<List<Task>> _recentTasks = widget.taskRepository
+      .listRecent();
 
   @override
   Widget build(BuildContext context) {
@@ -92,15 +77,7 @@ class _HomePageState extends State<HomePage> {
                     child: ListTile(
                       title: Text(task.inputMetadata['name'] ?? task.toolId),
                       subtitle: Text('${task.toolId} · ${task.status.label}'),
-                      trailing:
-                          task.status == TaskStatus.failed ||
-                              task.status == TaskStatus.interrupted
-                          ? TextButton(
-                              key: Key('retry-${task.taskId}'),
-                              onPressed: () => _retry(task),
-                              child: const Text('重试'),
-                            )
-                          : null,
+                      trailing: null,
                     ),
                   ),
               ],

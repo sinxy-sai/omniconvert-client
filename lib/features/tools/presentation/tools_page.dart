@@ -91,7 +91,7 @@ class _ToolsPageState extends State<ToolsPage> {
   }
 
   Future<void> _pickInput() async {
-    final selection = await pickLocalImage();
+    final selection = await pickLocalFile();
     if (selection == null || !mounted) return;
     setState(() {
       _selectedBytes = Uint8List.fromList(selection.bytes);
@@ -100,7 +100,7 @@ class _ToolsPageState extends State<ToolsPage> {
       if (_outputController.text.trim().isEmpty) {
         _outputController.text = defaultOutputFileName(
           selection.name,
-          _toolId == 'image_to_pdf' ? 'pdf' : 'jpg',
+          _toolId == 'image_to_pdf' || _toolId.endsWith('_to_pdf') ? 'pdf' : 'jpg',
         );
       }
     });
@@ -130,9 +130,11 @@ class _ToolsPageState extends State<ToolsPage> {
       const SizedBox(height: 24),
       SegmentedButton<String>(
         segments: const [
-          ButtonSegment(value: 'png_to_jpeg', label: Text('PNG → JPEG')),
+          ButtonSegment(value: 'png_to_jpeg', label: Text('图片 → JPEG')),
           ButtonSegment(value: 'compress_image', label: Text('图片压缩')),
           ButtonSegment(value: 'image_to_pdf', label: Text('图片 → PDF')),
+          if (!kIsWeb) const ButtonSegment(value: 'docx_to_pdf', label: Text('DOCX → PDF')),
+          if (!kIsWeb) const ButtonSegment(value: 'mobi_to_pdf', label: Text('MOBI → PDF')),
         ],
         selected: {_toolId},
         onSelectionChanged: _running
@@ -228,10 +230,10 @@ class _ToolsPageState extends State<ToolsPage> {
         title: '手写公式转 LaTeX',
         description: '官方免费额度或自建识别服务，需登录后使用。',
       ),
-      const _ToolNote(
+      if (!kIsWeb) const _ToolNote(
         icon: Icons.description_outlined,
         title: 'DOCX / MOBI → PDF',
-        description: '桌面端外部转换器适配器将在后续阶段开放。',
+        description: '需要本机安装 LibreOffice 或 Calibre，并确保命令在 PATH 中。',
       ),
     ],
   );

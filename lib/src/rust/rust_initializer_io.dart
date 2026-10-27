@@ -9,6 +9,10 @@ Future<void>? _initialization;
 Future<void> initializeRust() => _initialization ??= _loadRust();
 
 Future<void> _loadRust() async {
+  if (Platform.isAndroid) {
+    await RustLib.init();
+    return;
+  }
   final libraryName = switch (Platform.operatingSystem) {
     'windows' => 'omniconvert_core.dll',
     'macos' => 'libomniconvert_core.dylib',

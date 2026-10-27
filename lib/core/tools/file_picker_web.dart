@@ -6,9 +6,9 @@ import 'dart:typed_data';
 
 import 'local_file.dart';
 
-Future<LocalFileSelection?> pickLocalImage() {
+Future<LocalFileSelection?> pickLocalFile() {
   final completer = Completer<LocalFileSelection?>();
-  final input = html.FileUploadInputElement()..accept = 'image/*';
+  final input = html.FileUploadInputElement();
   input.onChange.first.then((_) async {
     final file = input.files?.firstOrNull;
     if (file == null) {

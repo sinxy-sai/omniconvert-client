@@ -15,7 +15,9 @@ class LocalFileSelection {
   final String? path;
 }
 
-Future<LocalFileSelection?> pickLocalImage() => implementation.pickLocalImage();
+Future<LocalFileSelection?> pickLocalFile() => implementation.pickLocalFile();
+
+Future<LocalFileSelection?> pickLocalImage() => pickLocalFile();
 
 Future<String?> saveLocalFile(List<int> bytes, String fileName) =>
     implementation.saveLocalFile(bytes, fileName);

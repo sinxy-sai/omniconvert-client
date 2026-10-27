@@ -40,6 +40,15 @@ jobs:
           flutter-version: '3.47.7'
           channel: stable
           cache: true
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+      - name: Build Rust Android library
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo install cargo-ndk --locked
+          cargo ndk -t arm64-v8a -o android/app/src/main/jniLibs build --release --manifest-path rust/Cargo.toml
       - name: Prepare Android release signing
         shell: bash
         env:
@@ -117,7 +126,13 @@ jobs:
           flutter-version: '3.47.7'
           channel: stable
           cache: true
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build Rust native library
+        run: cargo build --manifest-path rust/Cargo.toml --release
       - run: flutter build linux --release
+      - name: Bundle Rust native library
+        shell: bash
+        run: cp rust/target/release/libomniconvert_core.so build/linux/x64/release/bundle/libomniconvert_core.so
       - name: Package Linux distributions
         shell: bash
         run: |
@@ -143,7 +158,13 @@ jobs:
           flutter-version: '3.47.7'
           channel: stable
           cache: true
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build Rust native library
+        run: cargo build --manifest-path rust/Cargo.toml --release
       - run: flutter build macos --release
+      - name: Bundle Rust native library
+        shell: bash
+        run: cp rust/target/release/libomniconvert_core.dylib build/macos/Build/Products/Release/OmniConvert.app/Contents/MacOS/libomniconvert_core.dylib
       - name: Package macOS DMG and portable ZIP
         shell: bash
         run: |
