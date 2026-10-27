@@ -13,7 +13,18 @@ class NativeToolRunner implements ToolRunner {
     void Function(ToolProgress progress)? onProgress,
   }) async {
     if (request.toolId == 'docx_to_pdf' || request.toolId == 'mobi_to_pdf') {
-      return const BackendConversionRunner().run(request, onProgress: onProgress);
+      final bytes = request.inputBytes ?? await File(request.inputPath).readAsBytes();
+      return const BackendConversionRunner().run(
+        ToolRequest(
+          toolId: request.toolId,
+          inputPath: request.inputPath,
+          outputPath: request.outputPath,
+          options: request.options,
+          maxBytes: request.maxBytes,
+          inputBytes: bytes,
+        ),
+        onProgress: onProgress,
+      );
     }
     File? temporaryInput;
     var inputPath = request.inputPath;
