@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 安全漏洞 / Security vulnerability
+    url: https://github.com/sinxy-sai/omniconvert-client/security/advisories/new
+    about: 请私下报告安全漏洞，不要创建公开 issue。Do not open a public issue for security reports.
+  - name: 贡献指南 / Contributing guide
+    url: https://github.com/sinxy-sai/omniconvert-client/blob/main/CONTRIBUTING.md
+    about: 开发环境、工具链、测试命令、代码生成与发布流程。
+  - name: 实施状态 / Implementation status
+    url: https://github.com/sinxy-sai/omniconvert-client/blob/main/docs/implementation-status.md
+    about: 查看已实现、已验证与待验证事项，以及跨仓库职责边界。
+  - name: 官网问题 / Site issues
+    url: https://github.com/sinxy-sai/omniconvert-site/issues
+    about: 官网页面、下载页与发布清单问题请提交到站点仓库。

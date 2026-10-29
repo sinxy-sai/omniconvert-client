@@ -1,0 +1,69 @@
+name: 功能建议 / Feature request
+description: 为客户端提出功能或体验改进建议。Suggest a client feature or improvement.
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请先搜索现有 issue。请说明建议属于客户端能力；官方 OCR、账号与服务器转换的服务端实现位于私有仓库，不在本仓库实现。
+        当前明确暂缓/未验证的能力：官方 OCR、iOS 与 macOS 正式发布。请勿把建议建立在“这些能力已上线”的前提上。
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 建议范围 / Area
+      options:
+        - 本地图片工具（转换 / 压缩 / PDF）
+        - DOCX / MOBI → PDF（服务器转换）
+        - 公式识别与 OCR provider 配置
+        - 任务、历史与恢复
+        - 更新检查与安装体验
+        - 跨平台构建 / 打包
+        - 界面、可访问性或文案
+        - 其他 / Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 要解决的问题 / Problem
+      description: 当前哪里不方便？请描述使用场景，而不是只给结论。
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议方案 / Proposed solution
+      description: 你希望功能如何工作？涉及隐私边界时请说明文件是否需要上传。
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 考虑过的替代方案 / Alternatives considered
+      description: 可选。是否有更简单的本地实现或其他工具可满足？
+
+  - type: dropdown
+    id: willing
+    attributes:
+      label: 是否愿意提交 PR / Willing to contribute
+      options:
+        - 愿意提交 PR
+        - 可以协助测试
+        - 仅提出建议
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 确认 / Checklist
+      options:
+        - label: 我已搜索现有 issue，未发现重复。
+          required: true
+        - label: 我理解官方 OCR 暂缓、iOS/macOS 尚未发布验证，建议不以此为前提。
+          required: true

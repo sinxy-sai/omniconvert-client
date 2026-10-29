@@ -1,12 +1,14 @@
 {
-    "name": "OmniConvert",
+    "name": "OmniConvert — 本地文件工具箱",
     "short_name": "OmniConvert",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "本地优先的文件与公式工具。",
-    "orientation": "portrait-primary",
+    "background_color": "#F7F9FC",
+    "theme_color": "#4F46E5",
+    "description": "本地优先的文件工具箱：格式转换、图片压缩，文件默认在本机处理，不上传。",
+    "lang": "zh-CN",
+    "categories": ["productivity", "utilities"],
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

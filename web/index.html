@@ -1,46 +1,127 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
   <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
+    base href 由 `flutter build web --base-href` 注入；
+    OmniConvert 为纯静态 Web App，不依赖任何后端渲染或外部字体 CDN。
   -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="本地优先的文件与公式工具。">
+  <meta name="description" content="OmniConvert — 本地优先的文件工具箱：格式转换、图片压缩，文件默认在本机处理。">
+  <meta name="theme-color" content="#4F46E5" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0B1220" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="light dark">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="OmniConvert">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>OmniConvert</title>
+  <title>OmniConvert · 文件处理，简单一点</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #F7F9FC;
+    }
+    @media (prefers-color-scheme: dark) {
+      html, body { background: #0B1220; }
+    }
+    /* Flutter 启动前的品牌过渡层：被 flutter-view 覆盖，加载完成后自动移除。 */
+    #oc-boot {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+      color: #475569;
+      pointer-events: none;
+    }
+    #oc-boot .oc-mark {
+      width: 44px;
+      height: 44px;
+      border-radius: 13px;
+      background: linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%);
+      position: relative;
+      box-shadow: 0 1px 2px rgba(11, 18, 32, .04), 0 12px 32px rgba(11, 18, 32, .10);
+    }
+    #oc-boot .oc-mark::before,
+    #oc-boot .oc-mark::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      width: 16px;
+      height: 16px;
+      margin-top: -8px;
+      border: 3px solid #fff;
+      border-radius: 50%;
+    }
+    #oc-boot .oc-mark::before { left: 9px; }
+    #oc-boot .oc-mark::after {
+      right: 4px;
+      border-color: #fff transparent #fff #fff;
+      transform: rotate(45deg);
+    }
+    #oc-boot .oc-label {
+      font-size: 13px;
+      letter-spacing: .02em;
+      opacity: .85;
+    }
+    @media (prefers-color-scheme: dark) {
+      #oc-boot { color: #94A3B8; }
+    }
+  </style>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
+  <div id="oc-boot" aria-hidden="true">
+    <div class="oc-mark"></div>
+    <div class="oc-label">OmniConvert · 正在加载…</div>
+  </div>
 
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
+  <!--
+    可自定义 flutter_bootstrap.js 以提供加载反馈或初始化配置。
+    参见 https://docs.flutter.dev/platform-integration/web/initialization
   -->
   <script src="flutter_bootstrap.js" async></script>
+  <script>
+    (function () {
+      var boot = document.getElementById('oc-boot');
+      var done = false;
+      function clearBoot() {
+        if (done) return;
+        var view = document.querySelector('flutter-view, flt-glass-pane, flt-scene-host');
+        if (!view) return;
+        done = true;
+        if (boot) {
+          boot.style.transition = 'opacity 160ms ease';
+          boot.style.opacity = '0';
+          setTimeout(function () { boot.remove(); }, 200);
+        }
+        if (observer) observer.disconnect();
+      }
+      var observer = null;
+      if (window.MutationObserver) {
+        observer = new MutationObserver(clearBoot);
+        observer.observe(document.body, { childList: true, subtree: true });
+      }
+      window.addEventListener('load', function () {
+        setTimeout(clearBoot, 800);
+      });
+      setTimeout(clearBoot, 20000);
+    })();
+  </script>
 </body>
 </html>

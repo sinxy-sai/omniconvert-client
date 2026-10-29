@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/theme/tokens.dart';
+import '../../../app/widgets/oc_page.dart';
+import '../../../app/widgets/oc_surface.dart';
+import '../../../app/widgets/task_card.dart';
 import '../../../core/tasks/task.dart';
 import '../../../core/tasks/task_repository.dart';
 import '../../../core/tasks/task_status.dart';
@@ -19,77 +23,163 @@ class _TasksPageState extends State<TasksPage> {
   void _refresh() => setState(() => _tasks = widget.repository.listRecent());
 
   @override
-  Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(24),
-    children: [
-      Row(
-        children: [
-          Expanded(
-            child: Text(
-              '任务记录',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ),
-          IconButton(
+  Widget build(BuildContext context) {
+    return OcPage(
+      children: [
+        OcPageHeader(
+          title: '任务记录',
+          description: '转换与压缩的记录保存在本机；按状态分组，方便确认处理结果。',
+          trailing: IconButton(
             onPressed: _refresh,
-            icon: const Icon(Icons.refresh),
             tooltip: '刷新任务记录',
+            icon: const Icon(Icons.refresh_rounded),
           ),
-        ],
-      ),
-      const SizedBox(height: 16),
-      FutureBuilder<List<Task>>(
-        future: _tasks,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) return const Text('任务记录暂时无法读取。');
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final tasks = snapshot.data!;
-          if (tasks.isEmpty) {
-            return const Card.outlined(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text('暂无任务。完成处理后，结果会显示在这里。'),
-              ),
+          trailingWide: OutlinedButton.icon(
+            onPressed: _refresh,
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text('刷新'),
+          ),
+        ),
+        const SizedBox(height: OcSpace.lg),
+        FutureBuilder<List<Task>>(
+          future: _tasks,
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return OcNotice(
+                tone: OcTone.danger,
+                title: '任务记录暂时无法读取',
+                message: '可以刷新重试；已经写入磁盘的文件不会丢失。',
+                action: OutlinedButton(
+                  onPressed: _refresh,
+                  child: const Text('刷新'),
+                ),
+              );
+            }
+            if (!snapshot.hasData) {
+              return OcCard(
+                padding: const EdgeInsets.all(OcSpace.lg),
+                child: Row(
+                  children: [
+                    const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: OcSpace.sm),
+                    Text(
+                      '正在读取任务记录…',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              );
+            }
+            final tasks = snapshot.data!;
+            if (tasks.isEmpty) {
+              return OcCard(
+                child: OcEmptyState(
+                  icon: Icons.receipt_long_outlined,
+                  title: '暂无任务',
+                  description: '还没有任务记录。选择一个工具处理文件，完成后会自动出现在这里。',
+                  action: FilledButton.icon(
+                    onPressed: () => ocNavigate(context, '/tools'),
+                    icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+                    label: const Text('去选择工具'),
+                  ),
+                ),
+              );
+            }
+            final groups = _groupTasks(tasks);
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < groups.length; i++) ...[
+                  if (i > 0) const SizedBox(height: OcSpace.lg),
+                  _GroupHeader(group: groups[i]),
+                  const SizedBox(height: OcSpace.sm),
+                  for (var j = 0; j < groups[i].tasks.length; j++) ...[
+                    if (j > 0) const SizedBox(height: OcSpace.sm),
+                    TaskCard(task: groups[i].tasks[j], showStatus: false),
+                  ],
+                ],
+              ],
             );
-          }
-          return Column(
-            children: [for (final task in tasks) _TaskCard(task: task)],
-          );
-        },
-      ),
-    ],
-  );
+          },
+        ),
+      ],
+    );
+  }
+
+  List<_TaskGroup> _groupTasks(List<Task> tasks) => <_TaskGroup>[
+    _TaskGroup(
+      title: '进行中',
+      tone: OcTone.brand,
+      icon: Icons.autorenew_rounded,
+      tasks: tasks
+          .where(
+            (task) =>
+                task.status == TaskStatus.running ||
+                task.status == TaskStatus.queued,
+          )
+          .toList(),
+    ),
+    _TaskGroup(
+      title: '已完成',
+      tone: OcTone.success,
+      icon: Icons.check_circle_outline_rounded,
+      tasks: tasks
+          .where((task) => task.status == TaskStatus.succeeded)
+          .toList(),
+    ),
+    _TaskGroup(
+      title: '失败',
+      tone: OcTone.danger,
+      icon: Icons.error_outline_rounded,
+      tasks: tasks.where((task) => task.status == TaskStatus.failed).toList(),
+    ),
+    _TaskGroup(
+      title: '未完成',
+      tone: OcTone.neutral,
+      icon: Icons.remove_circle_outline_rounded,
+      tasks: tasks
+          .where(
+            (task) =>
+                task.status == TaskStatus.cancelled ||
+                task.status == TaskStatus.interrupted,
+          )
+          .toList(),
+    ),
+  ].where((group) => group.tasks.isNotEmpty).toList();
 }
 
-class _TaskCard extends StatelessWidget {
-  const _TaskCard({required this.task});
+class _TaskGroup {
+  const _TaskGroup({
+    required this.title,
+    required this.tone,
+    required this.icon,
+    required this.tasks,
+  });
 
-  final Task task;
+  final String title;
+  final OcTone tone;
+  final IconData icon;
+  final List<Task> tasks;
+}
+
+class _GroupHeader extends StatelessWidget {
+  const _GroupHeader({required this.group});
+
+  final _TaskGroup group;
 
   @override
   Widget build(BuildContext context) {
-    final output = task.outputMetadata['path'];
-    return Card.outlined(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              task.inputMetadata['name'] ?? task.toolId,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 6),
-            Text('${task.toolId} · ${task.status.label}'),
-            if (task.status == TaskStatus.running)
-              LinearProgressIndicator(value: task.progress),
-            if (output != null) Text('输出：$output'),
-            if (task.error case final error?) Text(error.message),
-          ],
-        ),
-      ),
+    final textTheme = Theme.of(context).textTheme;
+    return Row(
+      children: [
+        OcPill(label: group.title, tone: group.tone, dense: true, icon: group.icon),
+        const SizedBox(width: OcSpace.xs),
+        Text('${group.tasks.length} 个任务', style: textTheme.bodySmall),
+      ],
     );
   }
 }

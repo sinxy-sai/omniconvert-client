@@ -46,6 +46,7 @@ class WebImageToolRunner implements ToolRunner {
         _flattenAlpha(decoded),
         quality: _quality(request),
       ),
+      'jpg_to_png' => image.encodePng(decoded),
       'compress_image' => image.encodeJpg(decoded, quality: _quality(request)),
       'image_to_pdf' => await _toPdf(input),
       _ => throw const ToolRunException(

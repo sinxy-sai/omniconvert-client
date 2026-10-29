@@ -1,0 +1,112 @@
+name: Bug 报告 / Bug report
+description: 报告客户端缺陷。Report a bug in the OmniConvert client.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈！请先搜索现有 issue，确认问题未被报告。
+        安全漏洞请**不要**在这里公开，按 [SECURITY.md](https://github.com/sinxy-sai/omniconvert-client/blob/main/SECURITY.md) 私下报告。
+        请勿粘贴真实文档内容、OCR 服务凭据或本地绝对路径中的个人目录名。
+
+  - type: input
+    id: version
+    attributes:
+      label: 客户端版本 / Version
+      description: 设置页显示的版本，或 `pubspec.yaml` 中的版本。不同版本请分别报告。
+      placeholder: 0.1.3
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: 平台 / Platform
+      options:
+        - Web / PWA（/app/）
+        - Windows x64
+        - Linux x64
+        - Android（arm64）
+        - macOS（universal）
+        - iOS（仅构建检查，未发布）
+        - 不确定 / Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: source
+    attributes:
+      label: 安装来源 / Install source
+      options:
+        - GitHub Release 安装包
+        - CI 构建的未签名调试产物
+        - 本地自行构建（flutter build …）
+        - Web 站点 /app/
+        - 其他 / Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 功能范围 / Area
+      options:
+        - 图片工具（图片→JPEG / 压缩 / 单图→PDF）
+        - DOCX / MOBI → PDF（服务器转换）
+        - 公式识别 / OCR provider
+        - 任务列表、取消与恢复
+        - 设置 / 更新检查 / Android 安装
+        - 构建、启动或崩溃
+        - 其他 / Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤 / Steps to reproduce
+      placeholder: |
+        1. 打开 …
+        2. 选择文件（请描述格式与大致大小，不要上传真实敏感文件）…
+        3. 点击 …
+        4. 观察到 …
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为 / Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为与日志 / Actual behavior and logs
+      description: 可附错误码、控制台/终端输出或截图；请先移除令牌、完整本地路径和文件内容。
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 环境信息 / Environment
+      description: OS 版本、Flutter / Dart / Rust 版本（自行构建时）、是否联网、是否配置了 OCR provider。
+      placeholder: Windows 11 24H2；Flutter 3.47.7；Rust 1.99.1；未配置 OCR provider
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 确认 / Checklist
+      options:
+        - label: 我已搜索现有 issue，未发现重复。
+          required: true
+        - label: 我确认这不是安全漏洞（安全问题已按 SECURITY.md 私下报告）。
+          required: true
+        - label: 我未在报告中包含真实用户文件、凭据或签名密钥。
+          required: true
