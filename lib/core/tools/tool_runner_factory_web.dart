@@ -33,7 +33,16 @@ class WebImageToolRunner implements ToolRunner {
     }
     _cancelled = false;
     onProgress?.call(const ToolProgress(stage: 'decoding', progress: 0));
-    final decoded = image.decodeImage(input);
+    // `image.decodeImage` returns null for unknown formats but *throws* on
+    // truncated or corrupt payloads (e.g. a RangeError from a partially read
+    // header). Without this guard a bad file surfaced as an "unexpected" Dart
+    // error instead of the typed InvalidInput the UI can explain.
+    image.Image? decoded;
+    try {
+      decoded = image.decodeImage(input);
+    } catch (_) {
+      decoded = null;
+    }
     if (decoded == null) {
       throw const ToolRunException(
         ToolRunFailure(code: 'InvalidInput', message: '无法识别图片数据。'),
