@@ -30,7 +30,7 @@
 ### 验证
 
 - `flutter analyze` 0 issue；`flutter test` 117 项通过。
-- 浏览器真机点击验证（Chromium/Edge）：5 个本地工具全部「选文件 → 运行 → 下载 → 校验文件头」通过，压缩后 PNG 仍是 PNG。
+- 浏览器真机点击验证（Chromium/Edge）：4 个本地工具（PNG→JPEG、JPEG→PNG、图片压缩、图片→PDF，其中压缩覆盖 PNG/JPEG 两种输入，共 5 个用例）全部「选文件 → 运行 → 下载 → 校验文件头」通过，压缩后 PNG 仍是 PNG。
 
 ## [Unreleased]
 
