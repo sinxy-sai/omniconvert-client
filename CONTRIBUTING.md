@@ -52,11 +52,13 @@ flutter pub get
 flutter analyze
 flutter test
 python tool/generate_registry.py --check
+# 在包含 OmniConvert-site 与 OmniConvert-backend 的完整工作区里改用：
+python tool/generate_registry.py --check-cross-repo
 ```
 
 - `flutter analyze` 当前是 **0 issue**；新增告警不允许合并。
 - `flutter test` 当前 **117 项全部通过**；PR 里请写明测试数量与结果。
-- `python tool/generate_registry.py --check` 校验四处生成物与 `tool/registry.json` 一致。改了注册表却忘记重新生成，这项会失败。
+- `python tool/generate_registry.py --check` 校验**本仓库内**的两处生成物（`lib/core/tools/tool_registry.g.dart` 与 `docs/capabilities.md`）与 `tool/registry.json` 一致；CI 只检出本仓库，所以注册表 job 跑的就是这一条。改了注册表却忘记重新生成，这项会失败。在包含兄弟仓库的完整工作区里用 `--check-cross-repo`，它会额外校验官网站点与后端的生成物（文件缺失同样判为不一致）。
 
 改动涉及前端/Web 渲染或引擎行为时，另外执行：
 

@@ -26,7 +26,7 @@ OmniConvert-client/tool/registry.json          ← 唯一的编辑入口
 约束：
 
 - 上述四个产物**都是生成文件，禁止手改**。
-- CI 的 `registry` job 会跑 `python tool/generate_registry.py --check`，生成物与注册表不一致即失败；该 job 是所有后续 job 的前置。
+- CI 的 `registry` job 会跑 `python tool/generate_registry.py --check`，本仓库内的生成物与注册表不一致即失败；该 job 是所有后续 job 的前置。`--check` 只校验本仓库拥有的两份产物（Dart 定义与 `docs/capabilities.md`），因为 CI 只检出本仓库；在含兄弟仓库的完整工作区里用 `--check-cross-repo` 才会连官网站点与后端的产物一起校验。
 - 新增一个格式/工具 = 改 `registry.json` + 在对应引擎里实现，不涉及其它清单。
 
 ### 注册表字段
@@ -134,7 +134,7 @@ queued ──▶ running ──▶ succeeded / failed / cancelled / interrupted
 
 ## 8. 测试分层
 
-1. **注册表一致性**：`python tool/generate_registry.py --check` —— 生成物与 `tool/registry.json` 不一致即红。这是 CI 的第一个 job。
+1. **注册表一致性**：`python tool/generate_registry.py --check` —— 本仓库内的生成物与 `tool/registry.json` 不一致即红（`--check-cross-repo` 额外覆盖兄弟仓库产物）。这是 CI 的第一个 job。
 2. **单元**：`flutter analyze`（0 issue）+ `flutter test`（117 项）—— 纯逻辑、引擎正确性（含"压缩必须保留格式"这类回归）、工具契约、错误码、更新下载的重定向与摘要校验、任务状态机、页面 widget。
 3. **端到端**：`tool/e2e/web_smoke.js` —— 真实浏览器里选文件→处理→下载→校验文件头，覆盖全部本机工具；CI 的 `web-e2e` job 跑它并上传产物。
 4. **部署冒烟**：CI 在部署后打生产接口。
