@@ -37,7 +37,7 @@ dependencies:
   sqlite3: ^3.8.0
   path_provider: ^2.1.6
   http: ^1.5.0
-  package_info_plus: ^9.0.0
+  package_info_plus: ^10.2.2
   # Pure Dart image pipeline shared by every platform (Web + all native
   # targets). The Rust (flutter_rust_bridge) core was removed from the runtime.
   image: 4.12.0
