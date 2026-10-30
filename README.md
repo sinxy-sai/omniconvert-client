@@ -75,7 +75,7 @@ flutter pub get
 ```powershell
 flutter analyze                            # 0 issue
 flutter test                               # 117 项通过
-python tool/generate_registry.py --check   # 生成物必须与 tool/registry.json 一致
+python tool/generate_registry.py --check   # 本仓库生成物必须与 tool/registry.json 一致
 flutter build web --release --base-href /app/
 ```
 
@@ -85,7 +85,7 @@ flutter build web --release --base-href /app/
   python tool/generate_registry.py
   ```
 
-  它会写出 `lib/core/tools/tool_registry.g.dart`、`docs/capabilities.md`（以及官网站点与后端的 capabilities 生成物）。生成物都随仓库提交，禁止手改；CI 的 `registry` job 会跑 `--check`，不一致即失败。
+  它会写出 `lib/core/tools/tool_registry.g.dart`、`docs/capabilities.md`（以及官网站点与后端的 capabilities 生成物）。生成物都随仓库提交，禁止手改；CI 的 `registry` job 会跑 `--check`（只校验本仓库内的 Dart 定义与 `docs/capabilities.md`），不一致即失败。在含兄弟仓库的完整工作区里用 `--check-cross-repo`，会额外校验官网站点与后端的生成物。
 - 浏览器端到端冒烟（可选，需要 Playwright 与 Chromium/Edge）：
 
   ```powershell
@@ -194,6 +194,8 @@ flutter build web --release --base-href /app/
 
 ## 许可证
 
-本项目采用 [Apache-2.0](LICENSE) 许可证。第三方组件与 WASM 二进制声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。提交贡献即表示同意按同一许可证授权。
+Copyright 2026 sinxy-sai（https://github.com/sinxy-sai）。
+
+本项目采用 [Apache License 2.0](LICENSE) 许可证：你可以在遵守该许可证的前提下使用、修改与分发本项目。版权归属与项目名称声明见 [NOTICE](NOTICE)。第三方组件与 WASM 二进制声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。提交贡献即表示同意按同一许可证授权。
 
 本仓库对应公开客户端 `omniconvert-client`；官网源代码放在独立的公开仓库 `omniconvert-site`，官方服务端放在私有仓库 `omniconvert-backend`。变更记录见 [CHANGELOG.md](CHANGELOG.md)。
