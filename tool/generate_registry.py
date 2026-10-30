@@ -3,15 +3,21 @@
 
 Run from the ``OmniConvert-client`` repository root::
 
-    python tool/generate_registry.py            # write all generated files
-    python tool/generate_registry.py --check     # verify generated files are current
+    python tool/generate_registry.py               # write all generated files
+    python tool/generate_registry.py --check        # verify this repository's outputs
+    python tool/generate_registry.py --check-cross-repo  # also verify the sibling repos
 
 Outputs (all committed so the repos build standalone):
 
-* ``lib/core/tools/tool_registry.g.dart``                  Flutter client
-* ``../OmniConvert-site/src/lib/capabilities.generated.json``  Website build data
-* ``../OmniConvert-backend/app/conversion/capabilities_generated.py``  API capabilities
-* ``docs/capabilities.md``                                 Human documentation
+* ``lib/core/tools/tool_registry.g.dart``                              Flutter client (this repo)
+* ``docs/capabilities.md``                                             Documentation (this repo)
+* ``../OmniConvert-site/src/lib/capabilities.generated.json``          Website build data (sibling)
+* ``../OmniConvert-backend/app/conversion/capabilities_generated.py``  API capabilities (sibling)
+
+CI checks out only this repository, so the Client workflow runs ``--check``,
+which verifies the two outputs owned here. ``--check-cross-repo`` additionally
+verifies the two sibling-repository outputs (a missing sibling output counts as
+stale) and is meant for a full local workspace checkout.
 
 Only the standard library is used, so CI does not need extra dependencies.
 """
@@ -34,6 +40,11 @@ BACKEND_PATH = (
     WORKSPACE_ROOT / "OmniConvert-backend" / "app" / "conversion" / "capabilities_generated.py"
 )
 DOCS_PATH = CLIENT_ROOT / "docs" / "capabilities.md"
+
+#: Outputs committed inside this repository; these are what ``--check`` verifies.
+CLIENT_OUTPUTS: tuple[Path, ...] = (DART_PATH, DOCS_PATH)
+#: Outputs committed to sibling repositories, only verifiable in a full workspace.
+CROSS_REPO_OUTPUTS: tuple[Path, ...] = (SITE_PATH, BACKEND_PATH)
 
 BANNER = "GENERATED FROM OmniConvert-client/tool/registry.json — DO NOT EDIT BY HAND."
 
@@ -283,10 +294,39 @@ def render_docs(registry: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def display(path: Path) -> str:
+    """Path relative to the workspace root when possible, absolute otherwise."""
+    try:
+        return path.relative_to(WORKSPACE_ROOT).as_posix()
+    except ValueError:
+        return str(path)
+
+
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--check", action="store_true", help="verify generated files are up to date")
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help=(
+            "verify the generated files owned by this repository are up to date "
+            "(this is what CI runs; sibling repositories are not checked)"
+        ),
+    )
+    parser.add_argument(
+        "--check-cross-repo",
+        action="store_true",
+        help=(
+            "like --check, but also verify the OmniConvert-site and OmniConvert-backend "
+            "outputs; a missing sibling output counts as stale, so this only works in a "
+            "full local workspace checkout"
+        ),
+    )
     arguments = parser.parse_args()
+    check_cross_repo = arguments.check_cross_repo
+    check = arguments.check or check_cross_repo
 
     registry = load_registry()
     outputs = {
@@ -295,25 +335,37 @@ def main() -> int:
         BACKEND_PATH: render_backend(registry),
         DOCS_PATH: render_docs(registry),
     }
+    # `--check` stays green in CI, where only this repository is checked out; the
+    # sibling outputs simply do not exist there.
+    selected = CLIENT_OUTPUTS + CROSS_REPO_OUTPUTS if check_cross_repo else CLIENT_OUTPUTS
+    verified = [(path, outputs[path]) for path in selected]
+
+    if not check:
+        for path, content in outputs.items():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content, encoding="utf-8", newline="\n")
+            print(f"wrote {display(path)}")
+        return 0
 
     stale: list[str] = []
-    for path, content in outputs.items():
-        if arguments.check:
-            existing = path.read_text(encoding="utf-8") if path.exists() else ""
-            if existing != content:
-                stale.append(str(path))
-            continue
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content, encoding="utf-8", newline="\n")
-        print(f"wrote {path.relative_to(WORKSPACE_ROOT)}")
+    for path, content in verified:
+        if not path.exists():
+            stale.append(f"{display(path)} (missing)")
+        elif path.read_text(encoding="utf-8") != content:
+            stale.append(f"{display(path)} (out of date)")
 
-    if arguments.check:
-        if stale:
-            print("stale generated files (run `python tool/generate_registry.py`):", file=sys.stderr)
-            for path in stale:
-                print(f"  {path}", file=sys.stderr)
-            return 1
-        print("registry outputs are up to date")
+    if stale:
+        print("stale generated files (run `python tool/generate_registry.py`):", file=sys.stderr)
+        for entry in stale:
+            print(f"  {entry}", file=sys.stderr)
+        return 1
+
+    scope = (
+        "registry outputs, including the sibling repositories,"
+        if check_cross_repo
+        else "registry outputs owned by this repository"
+    )
+    print(f"{scope} are up to date")
     return 0
 
 
