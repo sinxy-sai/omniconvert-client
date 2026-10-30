@@ -60,3 +60,14 @@ abstract interface class ToolRunner {
     void Function(ToolProgress progress)? onProgress,
   });
 }
+
+/// A [ToolRunner] that can be asked to stop early.
+///
+/// Cancellation is cooperative: the runner checks the flag at every stage
+/// boundary (before decoding, after decoding, before writing the output) and
+/// throws a [ToolRunException] carrying the `Cancelled` code. Work already
+/// inside a CPU bound isolate call is not pre-empted, but nothing is written to
+/// disk once the flag is set.
+abstract interface class CancellableToolRunner implements ToolRunner {
+  void cancel();
+}

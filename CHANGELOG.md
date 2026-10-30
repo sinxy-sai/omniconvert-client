@@ -2,9 +2,37 @@
 
 本文件记录 OmniConvert 客户端（`omniconvert-client`）的版本变更。格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
-版本事实以 `pubspec.yaml` 与 git tag 为准。本仓库的 tag 为 `v0.1.0`、`v0.1.2`、`v0.1.3`；**不存在 `v0.1.1`**，版本号从 `0.1.0` 直接跳到 `0.1.2`。真实发布产物、签名/公证与各平台安装验收状态见 [实施状态](docs/implementation-status.md)。
+版本事实以 `pubspec.yaml` 与 git tag 为准。本仓库的 tag 为 `v0.1.0`、`v0.1.2`、`v0.1.3`、`v0.1.4`；**不存在 `v0.1.1`**，版本号从 `0.1.0` 直接跳到 `0.1.2`。真实发布产物、签名/公证与各平台安装验收状态见 [实施状态](docs/implementation-status.md)。
 
-## [Unreleased] - 2026-10-28
+## [0.1.4] - 2026-10-30
+
+### 修复 / Fixed
+
+- **Web 端全部本地工具失效**（P0）：本地引擎无条件创建 `ReceivePort` 并 `listen` 接收阶段进度，而 dart2js 不支持 `ReceivePort.listen`，浏览器里每次运行都抛 `UnsupportedError`，PNG→JPEG、JPG→PNG、图片压缩、图片→PDF 全部报「处理没有完成」。Web 上不再创建端口，阶段进度在结果返回后补发。
+- **图片压缩会把 PNG 静默变成 JPEG**：压缩按输入文件魔数判断格式，PNG 输入仍输出 PNG（走 zlib 级别），透明通道不再被白色背景替换。
+- **切换工具后状态串味**：切换工具会重置已选文件、输出文件名与参数；输出扩展名由工具定义决定，不再出现「压缩 PNG 却给出 `.jpg`」。
+- **更新包永远下载失败**：GitHub Release 资产 URL 必然 302 到 CDN，旧实现 `followRedirects = false` 直接抛错。现在手动跟随最多 5 跳，每一跳都要求 HTTPS。
+- Web 选文件时 `reader.result` 的类型兜底（`NativeUint8List` 不是 `ByteBuffer`）。
+
+### 新增 / Added
+
+- **一键更新**：设置页支持「检查更新 → 下载（显示进度）→ 校验 SHA-256 → 打开安装包」。Android 交给原生安装器，桌面端用系统默认方式打开，Web 打开下载页。校验失败会删除已下载文件。
+- `jpg_to_png`（JPEG → PNG）工具，补齐 png↔jpg 双向。
+- 单一事实源 `tool/registry.json` + `tool/generate_registry.py`：客户端 UI、官网能力表与后端 capabilities 全部由它生成，新增格式只需要改一处。
+- 工具页重做：拖拽/选择文件、参数控件由注册表生成、处理阶段进度、结果卡片（尺寸、用时、保存位置、下载/打开所在目录）、失败原因可操作（换文件/重试）。
+
+### 变更 / Changed
+
+- **移除 Rust 内核**（`rust/`、`lib/src/rust/`、`flutter_rust_bridge.yaml`）。本地图片工具改为一份纯 Dart 实现（`package:image` + `package:pdf`），所有平台执行同一段代码，Web 与桌面端不再出现行为差异。
+- 界面按设计系统重做：统一设计 token（颜色、间距、圆角、字号）、图标集、暗色模式、空状态与骨架屏。
+- 公式识别（OCR）明确标注「暂未开放」，不再提供不可用的入口。
+
+### 验证
+
+- `flutter analyze` 0 issue；`flutter test` 117 项通过。
+- 浏览器真机点击验证（Chromium/Edge）：5 个本地工具全部「选文件 → 运行 → 下载 → 校验文件头」通过，压缩后 PNG 仍是 PNG。
+
+## [Unreleased]
 
 ### 文档 / Documentation
 

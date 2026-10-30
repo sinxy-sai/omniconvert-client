@@ -1,39 +1,80 @@
 # OmniConvert 实施状态
 
-更新：2026-10-27。
+更新：2026-10-30（对应 `0.1.4`）。
 
-## 已实现
+本文只写**已经验证过**的事实。每条结论后面标注证据类型：`analyze` / `test` / `browser-e2e` / `curl` / `ci`。未经运行验证的一律放在「待验证」里。
 
-- 六平台 Flutter 工程骨架；访客可进入首页、任务、工具和设置。
-- Rust 本地核心及 Flutter/Rust 生成绑定；Windows 上的 Dart→Rust 健康检查通过。
-- 任务状态机、最近任务和失败/中断任务重试入口。
-- SQLite 任务持久化；启动时将遗留的运行中任务标记为已中断。Web 使用 SQLite WASM 和 IndexedDB。
-- 六目标 GitHub Actions 构建配置、本地验证脚本和第三方 WASM 许可声明。
+## 架构现状（0.1.4 起）
+
+```
+tools/registry.json        单一事实源：工具、格式、参数、上限
+        │  tool/generate_registry.py
+        ├─────────────▶ lib/core/tools/tool_registry.g.dart   （客户端 UI + 引擎默认值）
+        ├─────────────▶ OmniConvert-site/src/lib/capabilities.generated.json （官网能力表）
+        └─────────────▶ OmniConvert-backend/app/conversion/capabilities_generated.py
+                                     （服务端可转换格式，测试断言与 CONVERTERS 一致）
+
+ToolRunner（lib/core/tools/tool_runner.dart）
+  └── DartToolRunner（所有平台同一份实现，package:image + package:pdf）
+        ├── 本地图片工具：png_to_jpeg / jpg_to_png / compress_image / image_to_pdf
+        └── BackendConversionRunner（HTTP）：mobi_to_pdf / docx_to_pdf
+```
+
+**0.1.4 移除了 Rust 内核**（`rust/`、`lib/src/rust/`、`flutter_rust_bridge.yaml`）。原因：同一份能力曾在 Rust、Web 纯 Dart、UI 目录、后端四处分别实现，导致 png↔jpg 长期只有单向、Web 端与桌面端行为不一致、每加一个格式要改四处。现在本地引擎只有一份纯 Dart 实现，所有平台跑同一段代码，测试也只需要一套。代价是 mobi/docx 仍依赖服务端（这两种格式本来就需要 Calibre / LibreOffice）。
+
+## 工具清单（与 registry 一致）
+
+| 工具 | 输入 | 输出 | 引擎 | 参数 |
+|---|---|---|---|---|
+| png_to_jpeg | png | jpg | 本机 | JPEG 质量 1–100（默认 90） |
+| jpg_to_png | jpg / jpeg | png | 本机 | 无 |
+| compress_image | png / jpg / jpeg | **保持原格式** | 本机 | 压缩档位 / 画质 |
+| image_to_pdf | png / jpg / jpeg | pdf | 本机 | 版面：整页铺满 / A4 留白 |
+| mobi_to_pdf | mobi / azw / azw3 / epub | pdf | 服务器 | 无 |
+| docx_to_pdf | docx | pdf | 服务器 | 无 |
+
+单次输入上限 50 MB（`registry.json` 的 `maxInputBytes`）；图片像素上限 1 亿（压缩会按比例缩小而不是直接失败）。
+
+公式识别（OCR）按产品决定**本阶段不开放**：首页与工具页显示「暂未开放」，不提供入口。
 
 ## 已验证
 
-- Windows 开发机：`flutter analyze`、`flutter test`（13 项）、`cargo test`、`cargo build`、`tool/verify_platforms.ps1 -Target web` 通过。
-- Flutter Web 在 `/app/` 路径构建成功；无界面 Edge 加载时无页面错误，SQLite WASM 请求返回 200，IndexedDB 数据库创建成功。
-- SQLite 测试覆盖创建/更新、排序、结构化错误、幂等键唯一性和重启恢复。
-- GitHub Actions [运行 39471597280](https://github.com/sinxy-sai/omniconvert-client/actions/runs/39471597280) 全部通过：Windows、Linux、Android、Web、macOS 构建及 iOS 无签名编译检查；各作业的产物上传也通过。Android CI 修复提交为 `5aec27e`。
-- 本地工具第一阶段已实现：Rust 工具契约、输入大小和像素限制、取消、临时文件原子发布、PNG→JPEG、图片压缩和单图→PDF；Dart/Rust 图片工具绑定、原生工具页与任务执行服务已接入，跨语言冒烟测试通过。
-- 图片压缩和图片转 PDF 现在接受 PNG、JPEG 和 WebP 输入；PNG → JPEG 仍只接受 PNG 输入。任务记录页已接入真实的持久化任务仓库。
-- Windows 原生图片处理在选择器路径不可直接访问时，会将已读取的输入字节落到临时文件后交给 Rust 核心，并在任务结束后清理临时文件；Web 端继续以内存字节处理。
-- 桌面文档适配器已实现检测与安全进程边界：LibreOffice DOCX→PDF、Calibre MOBI→PDF，包含版本记录、超时、取消、输出校验和代表性 PDF 测试；第三方转换器仍由用户自行安装。
-- 任务执行已支持运行中取消、迟到结果保护；任务页显示持久化历史和错误详情，不再提供无法恢复原始输入的伪重试按钮。
+- `flutter analyze` —— **0 issue**。（analyze）
+- `flutter test` —— **117 项全部通过**。（test）
+- `flutter build web --release --base-href /app/` 成功。（build）
+- 浏览器端**真实点击**验证（Playwright + Chromium + Edge，选择文件 → 开始处理 → 下载结果 → 校验文件头）：
+  - png_to_jpeg：`red.jpg` 2364 B，magic `FF D8 FF` ✅
+  - jpg_to_png：`blue.png` 1949 B，magic `89 50 4E 47` ✅
+  - compress_image（PNG 输入）：`red.png` 737 B（输入 788 B），**格式保持 PNG** ✅
+  - compress_image（JPEG 输入）：`blue.jpg` 9013 B，magic `FF D8 FF` ✅
+  - image_to_pdf：`red.pdf` 1355 B，magic `%PDF-` ✅
+  （browser-e2e）
+- 服务端转换（curl 直连线上 API）：真实 mobi → 200 / 12772 B / `%PDF-`；真实 docx → 200 / 33370 B / `%PDF-`。（curl）
+- 更新链路：清单 `https://www.sinxysai.site/releases/latest.json` 可读（200），客户端支持检查版本、应用内下载、**流式 SHA-256 校验**、校验失败自动删除、交给系统安装包打开。
 
-## 待验证和待做
+## 0.1.4 修复的关键缺陷
+
+- **Web 端所有本地工具失效**：`dart_tool_runner.dart` 无条件创建 `ReceivePort` 并通过 `listen` 接收进度，而 dart2js 不支持 `ReceivePort.listen`，浏览器里每次点「开始处理」都抛 `UnsupportedError`，7 个工具全部报「处理没有完成」。现在 Web 不建端口，进度阶段由结果返回后补发。
+- **压缩会把 PNG 变成 JPEG**：压缩现在按输入魔数判断格式，PNG 仍输出 PNG（走 zlib 级别），透明通道不再被白色背景替换。
+- **切换工具后输入文件与输出名不联动**：切换工具会重置选中文件、输出名与参数；扩展名由工具决定（PNG → JPEG 不会残留 `.png`）。
+- **更新包下载必然失败**：GitHub Release 资产 URL 一定 302 跳转到 CDN，旧代码 `followRedirects = false` 直接失败。现在手动跟随最多 5 跳、每一跳都必须 HTTPS。
+- **更新下载器是死代码**：`UpdateDownloader` 只有测试引用，设置页只能「复制下载地址」。现在设置页可一键下载、校验、打开安装包（Android 走原生安装器，Web 打开下载页）。
+
+## 待验证
+
+- **Windows 本机构建**：当前开发机未开启「开发者模式」，Flutter 插件需要符号链接权限，`flutter build windows` 在本机被拒。Windows 产物由 CI（`windows-latest`）构建，需在发版后下载安装包做一次人工启动验收。
+- **服务端工具在浏览器内的完整链路**：本地验证时 `/app/` 与 `/api/` 不同源，浏览器受同源策略限制会失败；线上两者同源，需在部署后于 `https://www.sinxsai.site/app/` 复测 mobi/docx 两项。
+- **macOS**：无设备，未做安装与启动验收；产物由 CI 构建（未签名/未公证）。
+- **Android**：未在真机安装验收。
 
 ## 跨仓库职责边界
 
-- 客户端仓库负责 Flutter 界面、任务编排和本地图片处理；Rust 核心只处理本地文件，不能替代服务端 OCR。
-- 官网仓库负责静态页面、`/app/` Web 构建产物和发布清单，不承载转换或 OCR 业务逻辑。
-- backend 仓库负责需要上传同意的 OCR、账号、配额和异步队列。当前 backend 的识别提交接口返回 `202 queued`，而客户端仍按同步结果协议处理；在这项协议统一前，不应把官方 OCR 标记为已可用。
+- 客户端仓库：Flutter 界面、任务编排、本地图片引擎、更新检查与下载。
+- 官网仓库：静态页面、`/app/` Web 构建产物、发布清单（`public/releases/latest.json`），不承载转换逻辑。
+- backend 仓库：文档转换 API（LibreOffice / Calibre）、能力清单、健康检查与部署流水线；OCR 相关代码保留但线上关闭（`OCR_ENABLED=0`）。
 
-安装包与发布方案已接入 CI：Windows 生成 NSIS 安装器和 ZIP；macOS 生成 DMG 和 ZIP，且 universal 命名要求双架构；Linux 生成 AppImage、DEB 和 tar.gz；Android split-per-ABI 产出 arm64 APK，正式 tag 构建要求发布签名密钥。Release job 生成 `SHA256SUMS.txt`，官网下载页优先显示安装器及其他格式。真实 tag 发布、macOS Developer ID 签名与公证、各平台安装行为及官网线上清单仍待验证。
+## 已知限制
 
-- Windows 桌面调试构建未完成：本机缺少 Flutter 所需的 Visual Studio C++ 工作负载；Flutter Windows 构建产物下载曾因 TLS 握手中断。Android SDK 本机未安装。
-- 原生发行包的 Rust 库已在 Windows、Linux、macOS 和 Android release workflow 中加入构建/打包步骤；各平台实际安装和启动仍需在对应 runner 或设备上验收。
-- DOCX/MOBI 适配器仍未接入 Flutter 工具页；官网发布流程及 OCR 服务属于后续计划。官网 `/app/` 的静态 Web 版本元数据已同步到客户端 0.1.2。
-
-客户端基础计划的六平台 CI 构建检查已通过，正式安装包发布仍未执行；现有域名和服务器未改动。官网筹备页仍保留在本地 `ops/holding-page/` 和现有服务器上，含原有ICP备案与公安备案页脚；它已从客户端仓库的当前跟踪文件中移除，后续纳入独立官网仓库。
+- 大文件走服务端转换时，客户端把整个文件读进内存再 multipart 上传，50 MB 输入会占用约两倍内存；后续应改为流式上传。
+- 转换服务暂无 CORS 头，只适用于与官网同源的浏览器场景；桌面端不受影响。
+- 任务历史可查看但暂不支持「重跑」或「打开产物所在目录」的一键入口。

@@ -6,6 +6,8 @@ import '../tasks/task_repository.dart';
 import '../tasks/task_status.dart';
 import 'tool_runner.dart';
 
+export 'tool_runner.dart' show CancellableToolRunner;
+
 class ToolExecutionService {
   ToolExecutionService(this.repository, this.runner);
 
@@ -129,8 +131,4 @@ class ToolExecution {
   bool get isCancelled => isCancelledCallback();
 
   Future<void> cancel() => cancelCallback();
-}
-
-abstract interface class CancellableToolRunner implements ToolRunner {
-  void cancel();
 }

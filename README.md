@@ -1,8 +1,8 @@
 # OmniConvert
 
-OmniConvert 是面向学生和研究者的本地优先文件与公式工具。本仓库包含 Flutter 客户端、Rust 本地核心和公开的设计规格，采用 [Apache-2.0](LICENSE) 许可证。
+OmniConvert 是面向学生和研究者的本地优先文件工具。本仓库包含 Flutter 客户端、公开的设计规格与工具注册表，采用 [Apache-2.0](LICENSE) 许可证。
 
-**当前状态：客户端 0.1.3**（`pubspec.yaml` 为 `0.1.3+3`，最新 tag 为 `v0.1.3`）。首页、工具、任务和设置导航可运行；图片 → JPEG（仅 PNG 输入）、图片压缩和单图 → PDF（支持 PNG、JPEG 和 WebP 输入）已接入本地处理。DOCX / MOBI → PDF 通过服务器转换接口处理，需要联网。公式识别仍依赖用户明确配置的 OCR 服务；官方 OCR 服务和账号服务属于独立的私有后端边界，当前未标记为可用。
+**当前状态：客户端 0.1.4**（`pubspec.yaml` 为 `0.1.4+4`）。六个工具已可用：PNG → JPEG、JPEG → PNG、图片压缩（保持原格式）、图片 → PDF 在**本机离线**完成；MOBI / DOCX → PDF 通过官方转换服务完成（需联网，转换后立即删除）。设置页支持检查更新、应用内下载、SHA-256 校验与打开安装包。公式识别（OCR）按产品安排暂不开放。
 
 > 版本线与发布状态以 `pubspec.yaml`、git tag 和 GitHub Release 为准。真实 tag 发布产物、macOS 签名与公证、各平台安装验收仍在验证中，详见 [实施状态](docs/implementation-status.md)。
 

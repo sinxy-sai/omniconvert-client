@@ -17,3 +17,9 @@ Future<String> saveUpdate(String fileName, Stream<List<int>> bytes) async {
     rethrow;
   }
 }
+
+/// Deletes a downloaded update artifact (used when the SHA-256 check fails).
+Future<void> deleteUpdate(String path) async {
+  final file = File(path);
+  if (await file.exists()) await file.delete();
+}

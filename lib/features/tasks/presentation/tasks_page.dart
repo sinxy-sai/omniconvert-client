@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/icons/oc_icons.dart';
+import '../../../app/navigation.dart';
 import '../../../app/theme/tokens.dart';
-import '../../../app/widgets/oc_page.dart';
-import '../../../app/widgets/oc_surface.dart';
-import '../../../app/widgets/task_card.dart';
+import '../../../app/widgets/empty_state.dart';
+import '../../../app/widgets/inline_alert.dart';
+import '../../../app/widgets/page_layout.dart';
+import '../../../app/widgets/skeleton.dart';
+import '../../../app/widgets/surface_card.dart';
+import '../../../app/widgets/task_row.dart';
+import '../../../app/widgets/tone.dart';
 import '../../../core/tasks/task.dart';
 import '../../../core/tasks/task_repository.dart';
 import '../../../core/tasks/task_status.dart';
 
+/// 任务页：按状态分组，失败的原始信息放在可展开的详情里。
 class TasksPage extends StatefulWidget {
   const TasksPage({super.key, required this.repository});
 
@@ -17,35 +24,65 @@ class TasksPage extends StatefulWidget {
   State<TasksPage> createState() => _TasksPageState();
 }
 
+enum _Filter { all, active, done, issue }
+
 class _TasksPageState extends State<TasksPage> {
   late Future<List<Task>> _tasks = widget.repository.listRecent();
+  _Filter _filter = _Filter.all;
 
-  void _refresh() => setState(() => _tasks = widget.repository.listRecent());
+  void _refresh() =>
+      setState(() => _tasks = widget.repository.listRecent());
+
+  void _openTools() =>
+      Navigator.of(context).pushReplacementNamed(AppSection.tools.path);
+
+  List<Task> _visible(List<Task> tasks) => switch (_filter) {
+    _Filter.all => tasks,
+    _Filter.active => tasks
+        .where(
+          (task) =>
+              task.status == TaskStatus.running ||
+              task.status == TaskStatus.queued,
+        )
+        .toList(),
+    _Filter.done => tasks
+        .where((task) => task.status == TaskStatus.succeeded)
+        .toList(),
+    _Filter.issue => tasks
+        .where(
+          (task) =>
+              task.status == TaskStatus.failed ||
+              task.status == TaskStatus.cancelled ||
+              task.status == TaskStatus.interrupted,
+        )
+        .toList(),
+  };
 
   @override
   Widget build(BuildContext context) {
-    return OcPage(
+    return PageLayout(
       children: [
-        OcPageHeader(
+        PageHeader(
+          eyebrow: '任务',
           title: '任务记录',
-          description: '转换与压缩的记录保存在本机；按状态分组，方便确认处理结果。',
+          description: '转换与压缩的记录保存在本机；展开每条可以看路径、耗时和错误码。',
           trailing: IconButton(
             onPressed: _refresh,
             tooltip: '刷新任务记录',
-            icon: const Icon(Icons.refresh_rounded),
-          ),
-          trailingWide: OutlinedButton.icon(
-            onPressed: _refresh,
-            icon: const Icon(Icons.refresh_rounded, size: 18),
-            label: const Text('刷新'),
+            icon: const OcIcon(OcIcons.refresh, size: 18),
           ),
         ),
-        const SizedBox(height: OcSpace.lg),
+        vgap(OcSpace.md),
+        _FilterBar(
+          current: _filter,
+          onChanged: (filter) => setState(() => _filter = filter),
+        ),
+        vgap(OcSpace.sm),
         FutureBuilder<List<Task>>(
           future: _tasks,
           builder: (context, snapshot) {
             if (snapshot.hasError) {
-              return OcNotice(
+              return InlineAlert(
                 tone: OcTone.danger,
                 title: '任务记录暂时无法读取',
                 message: '可以刷新重试；已经写入磁盘的文件不会丢失。',
@@ -56,65 +93,58 @@ class _TasksPageState extends State<TasksPage> {
               );
             }
             if (!snapshot.hasData) {
-              return OcCard(
-                padding: const EdgeInsets.all(OcSpace.lg),
-                child: Row(
-                  children: [
-                    const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                    const SizedBox(width: OcSpace.sm),
-                    Text(
-                      '正在读取任务记录…',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
+              return const SurfaceCard(
+                padding: EdgeInsets.all(OcSpace.md),
+                child: SkeletonLines(lines: 4),
               );
             }
             final tasks = snapshot.data!;
             if (tasks.isEmpty) {
-              return OcCard(
-                child: OcEmptyState(
-                  icon: Icons.receipt_long_outlined,
-                  title: '暂无任务',
-                  description: '还没有任务记录。选择一个工具处理文件，完成后会自动出现在这里。',
-                  action: FilledButton.icon(
-                    onPressed: () => ocNavigate(context, '/tools'),
-                    icon: const Icon(Icons.arrow_forward_rounded, size: 18),
-                    label: const Text('去选择工具'),
-                  ),
+              return EmptyStatePanel(
+                icon: OcIcons.tasks,
+                title: '还没有任务',
+                description: '处理一个文件之后，这里会按状态列出结果，方便回头确认。',
+                action: FilledButton.icon(
+                  onPressed: _openTools,
+                  icon: const OcIcon(OcIcons.arrowRight, size: 16),
+                  label: const Text('去选择工具'),
                 ),
               );
             }
-            final groups = _groupTasks(tasks);
+            final visible = _visible(tasks);
+            if (visible.isEmpty) {
+              return EmptyStatePanel(
+                icon: OcIcons.list,
+                title: '这个筛选下没有任务',
+                description: '换一个筛选条件，或者回到全部任务看看。',
+                action: TextButton(
+                  onPressed: () => setState(() => _filter = _Filter.all),
+                  child: const Text('查看全部任务'),
+                ),
+              );
+            }
+            final groups = _grouped(visible);
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                for (var i = 0; i < groups.length; i++) ...[
-                  if (i > 0) const SizedBox(height: OcSpace.lg),
-                  _GroupHeader(group: groups[i]),
-                  const SizedBox(height: OcSpace.sm),
-                  for (var j = 0; j < groups[i].tasks.length; j++) ...[
-                    if (j > 0) const SizedBox(height: OcSpace.sm),
-                    TaskCard(task: groups[i].tasks[j], showStatus: false),
-                  ],
+                for (var index = 0; index < groups.length; index++) ...[
+                  if (index > 0) vgap(OcSpace.sm),
+                  _TaskGroupCard(group: groups[index]),
                 ],
               ],
             );
           },
         ),
+        vgap(OcSpace.xl),
       ],
     );
   }
 
-  List<_TaskGroup> _groupTasks(List<Task> tasks) => <_TaskGroup>[
+  List<_TaskGroup> _grouped(List<Task> tasks) => <_TaskGroup>[
     _TaskGroup(
       title: '进行中',
       tone: OcTone.brand,
-      icon: Icons.autorenew_rounded,
+      icon: OcIcons.refresh,
       tasks: tasks
           .where(
             (task) =>
@@ -126,24 +156,19 @@ class _TasksPageState extends State<TasksPage> {
     _TaskGroup(
       title: '已完成',
       tone: OcTone.success,
-      icon: Icons.check_circle_outline_rounded,
+      icon: OcIcons.check,
       tasks: tasks
           .where((task) => task.status == TaskStatus.succeeded)
           .toList(),
     ),
     _TaskGroup(
-      title: '失败',
-      tone: OcTone.danger,
-      icon: Icons.error_outline_rounded,
-      tasks: tasks.where((task) => task.status == TaskStatus.failed).toList(),
-    ),
-    _TaskGroup(
       title: '未完成',
-      tone: OcTone.neutral,
-      icon: Icons.remove_circle_outline_rounded,
+      tone: OcTone.danger,
+      icon: OcIcons.alert,
       tasks: tasks
           .where(
             (task) =>
+                task.status == TaskStatus.failed ||
                 task.status == TaskStatus.cancelled ||
                 task.status == TaskStatus.interrupted,
           )
@@ -162,23 +187,115 @@ class _TaskGroup {
 
   final String title;
   final OcTone tone;
-  final IconData icon;
+  final OcIconData icon;
   final List<Task> tasks;
 }
 
-class _GroupHeader extends StatelessWidget {
-  const _GroupHeader({required this.group});
+class _TaskGroupCard extends StatelessWidget {
+  const _TaskGroupCard({required this.group});
 
   final _TaskGroup group;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    return Row(
+    return SurfaceCard(
+      padding: const EdgeInsets.fromLTRB(
+        OcSpace.sm,
+        OcSpace.sm,
+        OcSpace.sm,
+        OcSpace.xxs,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              StatusPill(
+                label: group.title,
+                tone: group.tone,
+                icon: group.icon,
+                dense: true,
+              ),
+              const SizedBox(width: OcSpace.xs),
+              Text(
+                '${group.tasks.length} 条',
+                style: textTheme.bodySmall,
+              ),
+            ],
+          ),
+          const SizedBox(height: OcSpace.xxs),
+          for (var index = 0; index < group.tasks.length; index++) ...[
+            if (index > 0)
+              Divider(height: 1, color: scheme.outlineVariant),
+            TaskRow(task: group.tasks[index], showStatus: true),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _FilterBar extends StatelessWidget {
+  const _FilterBar({required this.current, required this.onChanged});
+
+  final _Filter current;
+  final ValueChanged<_Filter> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    const labels = <(_Filter, String)>[
+      (_Filter.all, '全部'),
+      (_Filter.active, '进行中'),
+      (_Filter.done, '已完成'),
+      (_Filter.issue, '未完成'),
+    ];
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    return Wrap(
+      spacing: OcSpace.xs,
+      runSpacing: OcSpace.xs,
       children: [
-        OcPill(label: group.title, tone: group.tone, dense: true, icon: group.icon),
-        const SizedBox(width: OcSpace.xs),
-        Text('${group.tasks.length} 个任务', style: textTheme.bodySmall),
+        for (final (filter, label) in labels)
+          Semantics(
+            button: true,
+            selected: filter == current,
+            label: label,
+            excludeSemantics: true,
+            child: InkWell(
+              onTap: () => onChanged(filter),
+              borderRadius: BorderRadius.circular(OcRadius.pill),
+              child: AnimatedContainer(
+                duration: OcDuration.fast,
+                curve: OcDuration.curve,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: OcSpace.sm,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: filter == current
+                      ? scheme.primaryContainer
+                      : scheme.surface,
+                  borderRadius: BorderRadius.circular(OcRadius.pill),
+                  border: Border.all(
+                    color: filter == current
+                        ? scheme.primary.withValues(alpha: 0.35)
+                        : scheme.outlineVariant,
+                  ),
+                ),
+                child: Text(
+                  label,
+                  style: textTheme.labelMedium?.copyWith(
+                    color: filter == current
+                        ? scheme.onPrimaryContainer
+                        : scheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }

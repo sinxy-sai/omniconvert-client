@@ -24,16 +24,16 @@ case "$target" in
 esac
 
 if [[ "$skip_checks" != --skip-checks ]]; then
-  cargo build --manifest-path rust/Cargo.toml
+  # The Rust core was retired from the runtime: image tools are pure Dart now,
+  # so CI only needs the Flutter SDK.
   flutter analyze
   flutter test
-  cargo test --manifest-path rust/Cargo.toml
 fi
 
 case "$target" in
   linux) flutter build linux --debug ;;
   android) flutter build apk --debug ;;
-  web) flutter build web --release --base-href /app/ ;;
+  web) flutter build web --release --no-wasm-dry-run --base-href /app/ ;;
   macos) flutter build macos --debug ;;
   ios-check) flutter build ios --debug --no-codesign ;;
 esac

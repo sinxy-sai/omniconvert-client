@@ -1,164 +1,174 @@
-name: Client platforms
+﻿name: Client
 
 on:
   pull_request:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: client-${{ github.ref }}
+  group: client-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  FLUTTER_VERSION: "3.47.7"
+
 jobs:
-  metadata:
+  registry:
+    name: Registry is the single source of truth
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
-      - id: version
-        shell: bash
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Generated code must match tool/registry.json
+        run: python tool/generate_registry.py --check
+
+  analyze-test:
+    name: Analyze and unit test
+    needs: registry
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+  web-e2e:
+    name: Browser end-to-end smoke
+    needs: analyze-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: flutter pub get
+      # --no-wasm-dry-run: package:image 4.5.4 has two wasm-incompatible files
+      # (exif/ifd_directory.dart). The JS build itself is fine; the dry-run report
+      # would otherwise fail the job with a red X that hides the real cause.
+      # Drop this flag once package:image is upgraded.
+      - run: flutter build web --release --base-href /app/ --no-wasm-dry-run
+      - name: Install Playwright
         run: |
-          version=$(sed -nE 's/^version: ([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' pubspec.yaml)
-          test -n "$version"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
+          npm install --no-save --no-package-lock playwright
+          npx playwright install --with-deps chromium
+      - name: Run the tool matrix in a real browser
+        run: node tool/e2e/web_smoke.js --dir build/web --out e2e-out
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: web-e2e-${{ github.sha }}
+          path: e2e-out
+          if-no-files-found: warn
+          retention-days: 7
+
+  web:
+    needs: analyze-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      # --no-wasm-dry-run: package:image 4.5.4 has two wasm-incompatible files
+      # (exif/ifd_directory.dart). The JS build itself is fine; the dry-run report
+      # would otherwise fail the job with a red X that hides the real cause.
+      # Drop this flag once package:image is upgraded.
+      - run: flutter build web --release --base-href /app/ --no-wasm-dry-run
+      - uses: actions/upload-artifact@v4
+        with:
+          name: omniconvert-web
+          path: build/web/
+          if-no-files-found: error
+          retention-days: 7
 
   windows:
-    needs: metadata
+    name: Windows desktop (release)
+    needs: analyze-test
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.47.7'
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: '1.99.1'
-      - shell: pwsh
-        run: ./tool/verify_platforms.ps1 -Target windows
+      - run: flutter pub get
+      # The build itself is the verification: this project used to depend on a
+      # native Rust core, which is the reason "every tool failed" on Windows.
+      - run: flutter build windows --release
+      - name: Package the runnable folder
+        shell: pwsh
+        run: |
+          Compress-Archive -Path build/windows/x64/runner/Release/* `
+            -DestinationPath "omniconvert-windows-x64.zip" -Force
       - uses: actions/upload-artifact@v4
         with:
-          name: OmniConvert-${{ needs.metadata.outputs.version }}-windows-x64
-          path: build/windows/x64/runner/Debug/
+          name: omniconvert-windows-x64
+          path: omniconvert-windows-x64.zip
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 14
 
   linux:
-    needs: metadata
+    name: Linux desktop (release)
+    needs: analyze-test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Linux desktop dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+      - name: Install Linux desktop toolchain
+        run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.47.7'
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: '1.99.1'
-      - run: bash tool/verify_platforms.sh linux
+      - run: flutter pub get
+      - run: flutter build linux --release
       - uses: actions/upload-artifact@v4
         with:
-          name: OmniConvert-${{ needs.metadata.outputs.version }}-linux-x64
-          path: build/linux/x64/debug/bundle/
+          name: omniconvert-linux-x64
+          path: build/linux/x64/release/bundle/
           if-no-files-found: error
           retention-days: 7
 
   android:
-    needs: metadata
+    name: Android APK
+    needs: analyze-test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.47.7'
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
-      - name: Build Android APK with dependency retry
-        shell: bash
-        run: |
-          for attempt in 1 2 3; do
-            if bash tool/verify_platforms.sh android --skip-checks; then
-              exit 0
-            fi
-            if [ "$attempt" -lt 3 ]; then
-              echo "Android build attempt $attempt failed; retrying after dependency caches settle..."
-              sleep 15
-            fi
-          done
-          exit 1
+      - run: flutter pub get
+      - run: flutter build apk --debug
       - uses: actions/upload-artifact@v4
         with:
-          name: OmniConvert-${{ needs.metadata.outputs.version }}-android-universal-debug
+          name: omniconvert-android-debug
           path: build/app/outputs/flutter-apk/app-debug.apk
-          if-no-files-found: error
-          retention-days: 7
-
-  web:
-    needs: metadata
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.47.7'
-          channel: stable
-          cache: true
-      - run: bash tool/verify_platforms.sh web --skip-checks
-      - uses: actions/upload-artifact@v4
-        with:
-          name: OmniConvert-${{ needs.metadata.outputs.version }}-web-browser
-          path: build/web/
-          if-no-files-found: error
-          retention-days: 7
-
-  macos:
-    needs: metadata
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.47.7'
-          channel: stable
-          cache: true
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: '1.99.1'
-      - run: bash tool/verify_platforms.sh macos
-      - uses: actions/upload-artifact@v4
-        with:
-          name: OmniConvert-${{ needs.metadata.outputs.version }}-macos-universal
-          path: build/macos/Build/Products/Debug/*.app/
-          if-no-files-found: error
-          retention-days: 7
-
-  ios-check:
-    needs: metadata
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.47.7'
-          channel: stable
-          cache: true
-      - run: bash tool/verify_platforms.sh ios-check --skip-checks
-      - uses: actions/upload-artifact@v4
-        with:
-          name: OmniConvert-${{ needs.metadata.outputs.version }}-ios-arm64-unsigned
-          path: build/ios/iphoneos/Runner.app/
           if-no-files-found: error
           retention-days: 7

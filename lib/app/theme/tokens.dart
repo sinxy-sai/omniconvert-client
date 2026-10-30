@@ -1,19 +1,25 @@
 import 'package:flutter/material.dart';
 
-/// OmniConvert 设计 token。
+/// OmniConvert 设计 token —— 颜色 / 间距 / 圆角 / 阴影 / 字号 / 动效。
 ///
-/// 数值来源：`.work/design-brief.md` 第 4–6 节。
-/// 页面与组件只允许引用这里的 token，不允许再出现魔法数字/随手色值。
+/// 约束：页面与组件只允许引用这里的 token，不允许再出现魔法数字或随手色值。
+/// 字号阶梯 12 / 14 / 16 / 20 / 24 / 32 / 44；
+/// 间距阶梯 4 / 8 / 12 / 16 / 24 / 32 / 48 / 64；
+/// 卡片圆角 16、按钮 10、徽标 pill。
 abstract final class OcColor {
   // ---- 品牌 ----
   static const brand = Color(0xFF4F46E5);
   static const brandStrong = Color(0xFF3730A3);
+  static const brandDeep = Color(0xFF312E81);
   static const accent = Color(0xFF06B6D4);
+  static const accentDeep = Color(0xFF0E7490);
 
   // ---- 文本与表面（浅色）----
   static const ink = Color(0xFF0B1220);
   static const inkSoft = Color(0xFF475569);
+  static const inkMuted = Color(0xFF64748B);
   static const line = Color(0xFFE2E8F0);
+  static const lineSoft = Color(0xFFEDF1F7);
   static const bg = Color(0xFFF7F9FC);
   static const surface = Color(0xFFFFFFFF);
   static const surfaceSunken = Color(0xFFF1F5F9);
@@ -39,6 +45,18 @@ abstract final class OcColor {
   static const accentContainer = Color(0xFFECFEFF);
   static const onAccentContainer = Color(0xFF155E75);
 
+  // ---- 格式徽标专用（12px 也需要 4.5:1）----
+  static const formatPngFg = Color(0xFF0F766E);
+  static const formatPngBg = Color(0xFFE6FBF7);
+  static const formatJpgFg = Color(0xFF92400E);
+  static const formatJpgBg = Color(0xFFFFF6E5);
+  static const formatPdfFg = Color(0xFF9F1239);
+  static const formatPdfBg = Color(0xFFFFEEF2);
+  static const formatDocFg = Color(0xFF1E40AF);
+  static const formatDocBg = Color(0xFFEEF3FF);
+  static const formatBookFg = Color(0xFF5B21B6);
+  static const formatBookBg = Color(0xFFF4EEFF);
+
   // ---- 等宽文本 ----
   static const monoSurface = Color(0xFF0F172A);
   static const onMonoSurface = Color(0xFFE2E8F0);
@@ -50,7 +68,7 @@ abstract final class OcColor {
   static const darkSurfaceRaised = Color(0xFF1B2740);
   static const darkLine = Color(0xFF1E293B);
   static const darkInk = Color(0xFFE2E8F0);
-  static const darkInkSoft = Color(0xFF94A3B8);
+  static const darkInkSoft = Color(0xFF9AA9BF);
   static const darkOutline = Color(0xFF334155);
   static const darkBrand = Color(0xFF818CF8);
   static const darkBrandContainer = Color(0xFF2A2A5E);
@@ -74,6 +92,11 @@ abstract final class OcColor {
   static const gradientBrand = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
+    colors: [brand, accent],
+  );
+  static const gradientBrandVertical = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
     colors: [brand, accent],
   );
 }
@@ -109,6 +132,23 @@ abstract final class OcRadius {
   static const iconTileBorder = BorderRadius.all(Radius.circular(iconTile));
 }
 
+/// 字号阶梯（与 `app_theme.dart` 的 TextTheme 一一对应，供固定尺寸场景使用）。
+abstract final class OcType {
+  static const display = 44.0;
+  static const title = 32.0;
+  static const heading = 24.0;
+  static const subhead = 20.0;
+  static const body = 16.0;
+  static const label = 14.0;
+  static const caption = 12.0;
+
+  /// 标题字距 -0.02em ≈ -0.02 × fontSize。
+  static const tightTracking = -0.02;
+
+  /// 中文正文行高下限。
+  static const bodyHeight = 1.7;
+}
+
 abstract final class OcDuration {
   static const fast = Duration(milliseconds: 150);
   static const base = Duration(milliseconds: 200);
@@ -119,10 +159,13 @@ abstract final class OcDuration {
 }
 
 abstract final class OcBreakpoints {
-  /// 页面内两栏/多列布局切换点。
+  /// 页面内两栏 / 多列布局切换点。
   static const tablet = 600.0;
 
-  /// ≥ 840dp 使用 NavigationRail。
+  /// 工具页「工具列 + 工作区」双栏切换点。
+  static const split = 1040.0;
+
+  /// ≥ 840dp 使用 NavigationRail（侧栏）。
   static const rail = 840.0;
 
   /// 桌面宽屏（多列内容、侧栏辅助信息）。
@@ -150,7 +193,7 @@ const ocMonoFallback = <String>[
   'monospace',
 ];
 
-/// ColorScheme 之外、but 仍然需要的语义色（success / warning / brand 容器 / 阴影）。
+/// ColorScheme 之外仍然需要的语义色（success / warning / 品牌容器 / 导航 / 阴影）。
 @immutable
 class OcSemantics {
   const OcSemantics({
@@ -172,7 +215,18 @@ class OcSemantics {
     required this.onAccentContainer,
     required this.monoSurface,
     required this.onMonoSurface,
+    required this.navSurface,
+    required this.navBorder,
+    required this.navInk,
+    required this.navInkSoft,
+    required this.navActiveSurface,
+    required this.navActiveInk,
+    required this.navActiveAccent,
+    required this.heroSurface,
+    required this.heroBorder,
+    required this.gridDot,
     required this.cardShadow,
+    required this.overlayShadow,
     required this.brandGradient,
     required this.brandSoftGradient,
   });
@@ -196,16 +250,33 @@ class OcSemantics {
     onAccentContainer: OcColor.onAccentContainer,
     monoSurface: OcColor.monoSurface,
     onMonoSurface: OcColor.onMonoSurface,
+    navSurface: OcColor.ink,
+    navBorder: Color(0xFF1B2740),
+    navInk: Color(0xFFF1F5F9),
+    navInkSoft: Color(0xFF9FB0C7),
+    navActiveSurface: Color(0x24FFFFFF),
+    navActiveInk: Color(0xFFFFFFFF),
+    navActiveAccent: OcColor.darkBrand,
+    heroSurface: Color(0xFFF3F5FF),
+    heroBorder: Color(0xFFDFE4FB),
+    gridDot: Color(0x0F4F46E5),
     cardShadow: [
       BoxShadow(
-        color: Color(0x0A0B1220),
+        color: Color(0x080B1220),
         blurRadius: 2,
         offset: Offset(0, 1),
       ),
       BoxShadow(
         color: Color(0x0F0B1220),
-        blurRadius: 32,
-        offset: Offset(0, 12),
+        blurRadius: 28,
+        offset: Offset(0, 10),
+      ),
+    ],
+    overlayShadow: [
+      BoxShadow(
+        color: Color(0x1A0B1220),
+        blurRadius: 40,
+        offset: Offset(0, 16),
       ),
     ],
     brandGradient: OcColor.gradientBrand,
@@ -235,7 +306,24 @@ class OcSemantics {
     onAccentContainer: OcColor.darkOnAccentContainer,
     monoSurface: Color(0xFF020617),
     onMonoSurface: Color(0xFFCBD5E1),
+    navSurface: Color(0xFF111A2C),
+    navBorder: OcColor.darkLine,
+    navInk: Color(0xFFE2E8F0),
+    navInkSoft: Color(0xFF9AA9BF),
+    navActiveSurface: Color(0x334F46E5),
+    navActiveInk: Color(0xFFE9E7FF),
+    navActiveAccent: OcColor.darkBrand,
+    heroSurface: Color(0xFF131E36),
+    heroBorder: Color(0xFF243251),
+    gridDot: Color(0x1F818CF8),
     cardShadow: <BoxShadow>[],
+    overlayShadow: <BoxShadow>[
+      BoxShadow(
+        color: Color(0x66000000),
+        blurRadius: 48,
+        offset: Offset(0, 18),
+      ),
+    ],
     brandGradient: LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
@@ -266,7 +354,22 @@ class OcSemantics {
   final Color onAccentContainer;
   final Color monoSurface;
   final Color onMonoSurface;
+
+  /// 侧边导航（深墨底，浅色 / 暗色都保持同一套「工作台」观感）。
+  final Color navSurface;
+  final Color navBorder;
+  final Color navInk;
+  final Color navInkSoft;
+  final Color navActiveSurface;
+  final Color navActiveInk;
+  final Color navActiveAccent;
+
+  /// 首页 hero 与品牌区背景。
+  final Color heroSurface;
+  final Color heroBorder;
+  final Color gridDot;
   final List<BoxShadow> cardShadow;
+  final List<BoxShadow> overlayShadow;
   final LinearGradient brandGradient;
   final LinearGradient brandSoftGradient;
 
@@ -274,4 +377,79 @@ class OcSemantics {
 
   static OcSemantics of(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark ? dark : light;
+}
+
+/// 浅色 / 暗色两套 ColorScheme；`app_theme.dart` 由它派生 ThemeData。
+abstract final class OcScheme {
+  static ColorScheme light() => const ColorScheme(
+    brightness: Brightness.light,
+    primary: OcColor.brand,
+    onPrimary: Colors.white,
+    primaryContainer: OcColor.brandContainer,
+    onPrimaryContainer: OcColor.onBrandContainer,
+    secondary: OcColor.accent,
+    onSecondary: Color(0xFF042F37),
+    secondaryContainer: OcColor.accentContainer,
+    onSecondaryContainer: OcColor.onAccentContainer,
+    tertiary: Color(0xFF0891B2),
+    onTertiary: Colors.white,
+    error: OcColor.danger,
+    onError: Colors.white,
+    errorContainer: OcColor.dangerContainer,
+    onErrorContainer: OcColor.onDangerContainer,
+    surface: OcColor.surface,
+    onSurface: OcColor.ink,
+    surfaceDim: Color(0xFFDDE5F0),
+    surfaceBright: OcColor.surface,
+    surfaceContainerLowest: OcColor.bg,
+    surfaceContainerLow: Color(0xFFFAFBFD),
+    surfaceContainer: OcColor.surfaceSunken,
+    surfaceContainerHigh: OcColor.surfaceRaised,
+    surfaceContainerHighest: OcColor.line,
+    onSurfaceVariant: OcColor.inkSoft,
+    outline: OcColor.outline,
+    outlineVariant: OcColor.line,
+    shadow: Color(0xFF0B1220),
+    scrim: Color(0xFF0B1220),
+    inverseSurface: OcColor.ink,
+    onInverseSurface: Color(0xFFF7F9FC),
+    inversePrimary: OcColor.darkBrand,
+    surfaceTint: Colors.transparent,
+  );
+
+  static ColorScheme dark() => const ColorScheme(
+    brightness: Brightness.dark,
+    primary: OcColor.darkBrand,
+    onPrimary: Color(0xFF12102E),
+    primaryContainer: OcColor.darkBrandContainer,
+    onPrimaryContainer: OcColor.darkOnBrandContainer,
+    secondary: OcColor.darkAccent,
+    onSecondary: Color(0xFF042F37),
+    secondaryContainer: OcColor.darkAccentContainer,
+    onSecondaryContainer: OcColor.darkOnAccentContainer,
+    tertiary: OcColor.darkAccent,
+    onTertiary: Color(0xFF042F37),
+    error: OcColor.darkDanger,
+    onError: Color(0xFF450A0A),
+    errorContainer: OcColor.darkDangerContainer,
+    onErrorContainer: OcColor.darkOnDangerContainer,
+    surface: OcColor.darkSurface,
+    onSurface: OcColor.darkInk,
+    surfaceDim: OcColor.darkBg,
+    surfaceBright: OcColor.darkSurfaceRaised,
+    surfaceContainerLowest: OcColor.darkBg,
+    surfaceContainerLow: Color(0xFF0E1729),
+    surfaceContainer: OcColor.darkSurfaceContainer,
+    surfaceContainerHigh: OcColor.darkSurfaceRaised,
+    surfaceContainerHighest: Color(0xFF223052),
+    onSurfaceVariant: OcColor.darkInkSoft,
+    outline: OcColor.darkOutline,
+    outlineVariant: OcColor.darkLine,
+    shadow: Color(0xFF000000),
+    scrim: Color(0xFF000000),
+    inverseSurface: OcColor.darkInk,
+    onInverseSurface: OcColor.darkBg,
+    inversePrimary: OcColor.brand,
+    surfaceTint: Colors.transparent,
+  );
 }

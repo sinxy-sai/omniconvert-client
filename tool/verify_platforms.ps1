@@ -27,16 +27,16 @@ try {
   }
 
   if (-not $SkipChecks) {
-    Invoke-Checked cargo -Arguments @('build', '--manifest-path', 'rust/Cargo.toml')
+    # The Rust core was retired from the runtime: image tools are pure Dart now,
+    # so CI only needs the Flutter SDK.
     Invoke-Checked $flutter -Arguments @('--no-version-check', 'analyze')
     Invoke-Checked $flutter -Arguments @('--no-version-check', 'test')
-    Invoke-Checked cargo -Arguments @('test', '--manifest-path', 'rust/Cargo.toml')
   }
 
   switch ($Target) {
     'windows' { Invoke-Checked $flutter -Arguments @('--no-version-check', 'build', 'windows', '--debug') }
     'android' { Invoke-Checked $flutter -Arguments @('--no-version-check', 'build', 'apk', '--debug') }
-    'web' { Invoke-Checked $flutter -Arguments @('--no-version-check', 'build', 'web', '--release', '--base-href', '/app/') }
+    'web' { Invoke-Checked $flutter -Arguments @('--no-version-check', 'build', 'web', '--release', '--no-wasm-dry-run', '--base-href', '/app/') }
   }
 
   Write-Host "OmniConvert $Target verification passed."

@@ -1,1 +1,0 @@
-Future<void> initializeRust() async {}

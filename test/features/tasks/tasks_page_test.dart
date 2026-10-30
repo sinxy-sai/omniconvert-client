@@ -32,13 +32,27 @@ void main() {
       ),
     );
 
+    // 这个页面设计上嵌在 AppShell 的 Scaffold 里：InkWell / ExpansionTile
+    // 都需要 Material 祖先，所以测试必须按真实挂载方式套一层 Scaffold。
     await tester.pumpWidget(
-      MaterialApp(home: TasksPage(repository: repository)),
+      MaterialApp(home: Scaffold(body: TasksPage(repository: repository))),
     );
     await tester.pumpAndSettle();
 
+    // 收起状态：文件名 + 状态可见，技术细节默认折叠。
     expect(find.text('photo.png'), findsOneWidget);
     expect(find.textContaining('失败'), findsOneWidget);
+    expect(find.text('Disk full'), findsNothing);
+
+    // 展开任务行 → 给出可读的失败原因。
+    await tester.tap(find.text('photo.png'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('无法写入输出文件'), findsOneWidget);
+
+    // 再展开「技术详情」才看到原始英文信息与错误码。
+    await tester.tap(find.text('技术详情（反馈问题时请附上）'));
+    await tester.pumpAndSettle();
+    expect(find.text('错误码：write_failed'), findsOneWidget);
     expect(find.text('Disk full'), findsOneWidget);
   });
 }

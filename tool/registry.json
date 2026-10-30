@@ -1,0 +1,107 @@
+{
+  "registryVersion": 1,
+  "description": "OmniConvert 工具能力的单一事实源。客户端 Dart 代码、官网页面数据、后端 capabilities 端点与文档全部由本文件生成，禁止在别处硬编码工具清单。",
+  "limits": {
+    "maxInputBytes": 52428800,
+    "maxImagePixels": 100000000
+  },
+  "categories": [
+    { "id": "convert", "name": { "zh": "格式转换", "en": "Convert" } },
+    { "id": "compress", "name": { "zh": "压缩瘦身", "en": "Compress" } }
+  ],
+  "tools": [
+    {
+      "id": "png_to_jpeg",
+      "name": { "zh": "PNG → JPEG", "en": "PNG to JPEG" },
+      "summary": { "zh": "透明底自动合成白色背景，质量可调", "en": "Flattens transparency to white, quality adjustable" },
+      "category": "convert",
+      "engine": "local",
+      "inputExtensions": ["png"],
+      "outputExtension": "jpg",
+      "options": [
+        {
+          "id": "quality",
+          "type": "integer",
+          "min": 1,
+          "max": 100,
+          "default": 90,
+          "label": { "zh": "JPEG 质量", "en": "JPEG quality" }
+        }
+      ]
+    },
+    {
+      "id": "jpg_to_png",
+      "name": { "zh": "JPEG → PNG", "en": "JPEG to PNG" },
+      "summary": { "zh": "转为无损 PNG，便于二次编辑", "en": "Lossless PNG output for further editing" },
+      "category": "convert",
+      "engine": "local",
+      "inputExtensions": ["jpg", "jpeg"],
+      "outputExtension": "png",
+      "options": []
+    },
+    {
+      "id": "compress_image",
+      "name": { "zh": "图片压缩", "en": "Compress image" },
+      "summary": { "zh": "保持原格式压缩，体积更小、画质可控", "en": "Keeps the input format, smaller size, tunable quality" },
+      "category": "compress",
+      "engine": "local",
+      "inputExtensions": ["png", "jpg", "jpeg"],
+      "outputExtension": "same",
+      "options": [
+        {
+          "id": "preset",
+          "type": "enum",
+          "values": ["high", "balanced", "small"],
+          "default": "balanced",
+          "label": { "zh": "压缩档位", "en": "Compression preset" }
+        },
+        {
+          "id": "quality",
+          "type": "integer",
+          "min": 1,
+          "max": 100,
+          "default": 80,
+          "label": { "zh": "画质", "en": "Quality" }
+        }
+      ]
+    },
+    {
+      "id": "image_to_pdf",
+      "name": { "zh": "图片 → PDF", "en": "Image to PDF" },
+      "summary": { "zh": "整页铺满或按 A4 留白，不裁切", "en": "Full-bleed or A4 with margins, never cropped" },
+      "category": "convert",
+      "engine": "local",
+      "inputExtensions": ["png", "jpg", "jpeg"],
+      "outputExtension": "pdf",
+      "options": [
+        {
+          "id": "layout",
+          "type": "enum",
+          "values": ["fit", "a4"],
+          "default": "fit",
+          "label": { "zh": "版面", "en": "Layout" }
+        }
+      ]
+    },
+    {
+      "id": "mobi_to_pdf",
+      "name": { "zh": "MOBI → PDF", "en": "MOBI to PDF" },
+      "summary": { "zh": "电子书排版转换，上传后即用即删", "en": "Ebook layout conversion, uploads are deleted after use" },
+      "category": "convert",
+      "engine": "server",
+      "inputExtensions": ["mobi", "azw", "azw3", "epub"],
+      "outputExtension": "pdf",
+      "options": []
+    },
+    {
+      "id": "docx_to_pdf",
+      "name": { "zh": "DOCX → PDF", "en": "DOCX to PDF" },
+      "summary": { "zh": "保留排版的文档转换", "en": "Layout-preserving document conversion" },
+      "category": "convert",
+      "engine": "server",
+      "inputExtensions": ["docx"],
+      "outputExtension": "pdf",
+      "options": []
+    }
+  ]
+}

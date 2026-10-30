@@ -1,9 +1,17 @@
 name: Release client
 
+# Tag push (vX.Y.Z) builds every platform, publishes a GitHub Release and then
+# asks the website repository to rebuild so the download page and the release
+# never drift apart.
 on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to release (e.g. v0.1.4)'
+        required: true
 
 permissions:
   contents: write
@@ -12,6 +20,9 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  FLUTTER_VERSION: "3.47.7"
+
 jobs:
   metadata:
     runs-on: ubuntu-latest
@@ -19,37 +30,106 @@ jobs:
       version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
       - id: version
         shell: bash
         run: |
+          set -euo pipefail
           version=$(sed -nE 's/^version: ([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' pubspec.yaml)
-          test "$version" = "${GITHUB_REF_NAME#v}"
+          test -n "$version"
+          ref="${GITHUB_REF_NAME}"
+          if [[ "$ref" == v* ]]; then
+            if [ "$version" != "${ref#v}" ]; then
+              echo "::error::pubspec version $version does not match tag $ref"
+              exit 1
+            fi
+          fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  windows:
+    needs: metadata
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter build windows --release
+      - shell: pwsh
+        run: choco install nsis -y --no-progress
+      - name: Package installer and portable archive
+        shell: pwsh
+        run: .\ops\windows\package.ps1 -Version "${{ needs.metadata.outputs.version }}" -OutputDir .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            OmniConvert-${{ needs.metadata.outputs.version }}-windows-x64.zip
+            OmniConvert-${{ needs.metadata.outputs.version }}-windows-x64-setup.exe
+          if-no-files-found: error
+
+  linux:
+    needs: metadata
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+      - run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev dpkg
+      - name: Install appimagetool
+        shell: bash
+        run: |
+          curl -L --fail --retry 3 -o /tmp/appimagetool.AppImage \
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x /tmp/appimagetool.AppImage
+          echo "APPIMAGETOOL=/tmp/appimagetool.AppImage" >> "$GITHUB_ENV"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter build linux --release
+      - name: Package Linux distributions
+        shell: bash
+        run: |
+          set -euo pipefail
+          export APPIMAGE_EXTRACT_AND_RUN=1
+          bash ops/linux/package-appimage.sh "${{ needs.metadata.outputs.version }}" build/linux/x64/release/bundle "OmniConvert-${{ needs.metadata.outputs.version }}-linux-x64.AppImage"
+          bash ops/linux/package-deb.sh "${{ needs.metadata.outputs.version }}" build/linux/x64/release/bundle "OmniConvert-${{ needs.metadata.outputs.version }}-linux-x64.deb"
+          tar -czf "OmniConvert-${{ needs.metadata.outputs.version }}-linux-x64.tar.gz" -C build/linux/x64/release/bundle .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            OmniConvert-${{ needs.metadata.outputs.version }}-linux-x64.AppImage
+            OmniConvert-${{ needs.metadata.outputs.version }}-linux-x64.deb
+            OmniConvert-${{ needs.metadata.outputs.version }}-linux-x64.tar.gz
+          if-no-files-found: error
 
   android:
     needs: metadata
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.47.7'
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-linux-android
-      - name: Build Rust Android library
-        shell: bash
-        run: |
-          set -euo pipefail
-          cargo install cargo-ndk --locked
-          cd rust
-          cargo ndk -t arm64-v8a -o ../android/app/src/main/jniLibs build --release
+      - run: flutter pub get
       - name: Prepare Android release signing
         shell: bash
         env:
@@ -64,146 +144,91 @@ jobs:
           test -n "$OMNICONVERT_ANDROID_KEY_ALIAS"
           test -n "$OMNICONVERT_ANDROID_KEY_PASSWORD"
           echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/omniconvert-release.jks"
-          echo "OMNICONVERT_ANDROID_KEYSTORE=$RUNNER_TEMP/omniconvert-release.jks" >> "$GITHUB_ENV"
-          echo "OMNICONVERT_ANDROID_STORE_PASSWORD=$OMNICONVERT_ANDROID_STORE_PASSWORD" >> "$GITHUB_ENV"
-          echo "OMNICONVERT_ANDROID_KEY_ALIAS=$OMNICONVERT_ANDROID_KEY_ALIAS" >> "$GITHUB_ENV"
-          echo "OMNICONVERT_ANDROID_KEY_PASSWORD=$OMNICONVERT_ANDROID_KEY_PASSWORD" >> "$GITHUB_ENV"
+          {
+            echo "OMNICONVERT_ANDROID_KEYSTORE=$RUNNER_TEMP/omniconvert-release.jks"
+            echo "OMNICONVERT_ANDROID_STORE_PASSWORD=$OMNICONVERT_ANDROID_STORE_PASSWORD"
+            echo "OMNICONVERT_ANDROID_KEY_ALIAS=$OMNICONVERT_ANDROID_KEY_ALIAS"
+            echo "OMNICONVERT_ANDROID_KEY_PASSWORD=$OMNICONVERT_ANDROID_KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
       - run: flutter build apk --release --split-per-abi
       - run: cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk "OmniConvert-${{ needs.metadata.outputs.version }}-android-arm64.apk"
       - uses: actions/upload-artifact@v4
         with:
           name: android
           path: OmniConvert-${{ needs.metadata.outputs.version }}-android-arm64.apk
+          if-no-files-found: error
 
-  windows:
-    needs: metadata
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.47.7'
-          channel: stable
-          cache: true
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-      - name: Build Rust native library
-        run: cargo build --manifest-path rust/Cargo.toml --release
-      - run: flutter build windows --release
-      - name: Bundle Rust native library
-        shell: pwsh
-        run: |
-          $source = 'rust/target/release/omniconvert_core.dll'
-          $destination = 'build/windows/x64/runner/Release/omniconvert_core.dll'
-          if (-not (Test-Path $source)) { throw "Rust native library was not built: $source" }
-          Copy-Item -Force $source $destination
-      - shell: pwsh
-        run: choco install nsis -y --no-progress
-      - name: Package Windows installer and portable archive
-        shell: pwsh
-        run: .\ops\windows\package.ps1 -Version "${{ needs.metadata.outputs.version }}" -OutputDir .
-      - uses: actions/upload-artifact@v4
-        with:
-          name: windows
-          path: |
-            OmniConvert-${{ needs.metadata.outputs.version }}-windows-x64.zip
-            OmniConvert-${{ needs.metadata.outputs.version }}-windows-x64-setup.exe
-
-  linux:
+  web:
     needs: metadata
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev dpkg
-      - name: Install appimagetool
-        shell: bash
-        run: |
-          curl -L --fail --retry 3 -o /tmp/appimagetool.AppImage https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
-          chmod +x /tmp/appimagetool.AppImage
-          echo "APPIMAGETOOL=/tmp/appimagetool.AppImage" >> "$GITHUB_ENV"
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.47.7'
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Build Rust native library
-        run: cargo build --manifest-path rust/Cargo.toml --release
-      - run: flutter build linux --release
-      - name: Bundle Rust native library
-        shell: bash
-        run: cp rust/target/release/libomniconvert_core.so build/linux/x64/release/bundle/libomniconvert_core.so
-      - name: Package Linux distributions
+      - run: flutter pub get
+      - run: flutter build web --release --base-href /app/
+      - name: Package the web build
         shell: bash
         run: |
-          export APPIMAGE_EXTRACT_AND_RUN=1
-          bash ops/linux/package-appimage.sh "${{ needs.metadata.outputs.version }}" build/linux/x64/release/bundle "OmniConvert-${{ needs.metadata.outputs.version }}-linux-x64.AppImage"
-          bash ops/linux/package-deb.sh "${{ needs.metadata.outputs.version }}" build/linux/x64/release/bundle "OmniConvert-${{ needs.metadata.outputs.version }}-linux-x64.deb"
-          tar -czf "OmniConvert-${{ needs.metadata.outputs.version }}-linux-x64.tar.gz" -C build/linux/x64/release/bundle .
+          set -euo pipefail
+          cd build/web
+          zip -qr "../../OmniConvert-${{ needs.metadata.outputs.version }}-web.zip" .
       - uses: actions/upload-artifact@v4
         with:
-          name: linux
-          path: |
-            OmniConvert-${{ needs.metadata.outputs.version }}-linux-x64.AppImage
-            OmniConvert-${{ needs.metadata.outputs.version }}-linux-x64.deb
-            OmniConvert-${{ needs.metadata.outputs.version }}-linux-x64.tar.gz
+          name: web
+          path: OmniConvert-${{ needs.metadata.outputs.version }}-web.zip
+          if-no-files-found: error
 
   macos:
     needs: metadata
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.47.7'
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-apple-darwin,x86_64-apple-darwin
-      - name: Build Rust native library
-        shell: bash
-        run: |
-          cargo build --manifest-path rust/Cargo.toml --release --target aarch64-apple-darwin
-          cargo build --manifest-path rust/Cargo.toml --release --target x86_64-apple-darwin
+      - run: flutter pub get
       - run: flutter build macos --release
-      - name: Bundle Rust native library
-        shell: bash
-        run: |
-          lipo -create \
-            rust/target/aarch64-apple-darwin/release/libomniconvert_core.dylib \
-            rust/target/x86_64-apple-darwin/release/libomniconvert_core.dylib \
-            -output build/macos/Build/Products/Release/OmniConvert.app/Contents/MacOS/libomniconvert_core.dylib
       - name: Package macOS DMG and portable ZIP
         shell: bash
         run: |
-          archs=$(lipo -archs build/macos/Build/Products/Release/OmniConvert.app/Contents/MacOS/OmniConvert)
-          rust_archs=$(lipo -archs build/macos/Build/Products/Release/OmniConvert.app/Contents/MacOS/libomniconvert_core.dylib)
-          [[ "$archs" == *arm64* && "$archs" == *x86_64* ]]
-          [[ "$rust_archs" == *arm64* && "$rust_archs" == *x86_64* ]]
+          set -euo pipefail
+          app='build/macos/Build/Products/Release/OmniConvert.app'
+          archs=$(lipo -archs "$app/Contents/MacOS/OmniConvert")
           arch_label=universal
-          bash ops/macos/package-dmg.sh "${{ needs.metadata.outputs.version }}" build/macos/Build/Products/Release/OmniConvert.app "OmniConvert-${{ needs.metadata.outputs.version }}-macos-${arch_label}.dmg"
-          ditto -c -k --sequesterRsrc --keepParent build/macos/Build/Products/Release/OmniConvert.app "OmniConvert-${{ needs.metadata.outputs.version }}-macos-${arch_label}.zip"
+          [[ "$archs" == *arm64* && "$archs" == *x86_64* ]] || arch_label=$(echo "$archs" | tr ' ' '-')
+          bash ops/macos/package-dmg.sh "${{ needs.metadata.outputs.version }}" "$app" "OmniConvert-${{ needs.metadata.outputs.version }}-macos-${arch_label}.dmg"
+          ditto -c -k --sequesterRsrc --keepParent "$app" "OmniConvert-${{ needs.metadata.outputs.version }}-macos-${arch_label}.zip"
       - uses: actions/upload-artifact@v4
         with:
           name: macos
           path: |
             OmniConvert-${{ needs.metadata.outputs.version }}-macos-*.dmg
             OmniConvert-${{ needs.metadata.outputs.version }}-macos-*.zip
+          if-no-files-found: error
 
   release:
-    needs: [metadata, android, windows, linux, macos]
+    needs: [metadata, windows, linux, android, web, macos]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.inputs.tag || github.ref }}
       - uses: actions/download-artifact@v4
         with:
           path: assets
           merge-multiple: true
-      - name: Build release notes with GitHub generated contributors
+      - name: Build release notes
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -213,20 +238,13 @@ jobs:
           previous=$(git describe --tags --abbrev=0 "$current^" 2>/dev/null || true)
           if [ -n "$previous" ]; then
             range="$previous..$current"
+            gh api --method POST "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
+              -f tag_name="$current" -f target_commitish="$GITHUB_SHA" \
+              -f previous_tag_name="$previous" --jq .body > generated-release-notes.md
           else
             range="$current"
-          fi
-          if [ -n "$previous" ]; then
             gh api --method POST "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
-              -f tag_name="$current" \
-              -f target_commitish="$GITHUB_SHA" \
-              -f previous_tag_name="$previous" \
-              --jq .body > generated-release-notes.md
-          else
-            gh api --method POST "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
-              -f tag_name="$current" \
-              -f target_commitish="$GITHUB_SHA" \
-              --jq .body > generated-release-notes.md
+              -f tag_name="$current" -f target_commitish="$GITHUB_SHA" --jq .body > generated-release-notes.md
           fi
           {
             echo "## Full Changelog"
@@ -239,18 +257,19 @@ jobs:
         run: cd assets && sha256sum OmniConvert-* > SHA256SUMS.txt
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           body_path: release-notes.md
           files: assets/*
-      - name: Notify website repository
+      - name: Ask the website to rebuild with the new release data
         env:
           GH_TOKEN: ${{ secrets.SITE_REPO_TOKEN }}
         run: |
+          set -euo pipefail
           if [ -z "$GH_TOKEN" ]; then
-            echo "SITE_REPO_TOKEN is not configured; website rebuild must be triggered manually."
+            echo "::warning::SITE_REPO_TOKEN is not configured; rebuild the website manually."
             exit 0
           fi
           gh api repos/sinxy-sai/omniconvert-site/dispatches \
             --method POST \
             -f event_type=client-release \
-            -f client_payload[client_ref]="$GITHUB_REF_NAME"
+            -f client_payload[client_ref]="${{ github.event.inputs.tag || github.ref_name }}"

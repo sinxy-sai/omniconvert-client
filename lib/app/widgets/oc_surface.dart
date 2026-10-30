@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../theme/tokens.dart';
+import 'tone.dart';
+
+export 'tone.dart' show OcTone;
 
 /// 统一的内容卡片：16 圆角、1px 描边、brief 指定的轻投影。
 /// 可点击时提供 hover 抬升（桌面端可信赖感的关键细节）。
@@ -78,8 +81,7 @@ class _OcCardState extends State<OcCard> {
   }
 }
 
-/// 徽标：pill 形状 + 语义色调，用于状态、处理方式、标签。
-enum OcTone { neutral, brand, accent, success, warning, danger, info }
+/// 徽标 / 提示条 / 图标底板共用的语义色调见 `tone.dart`。
 
 class OcPill extends StatelessWidget {
   const OcPill({
