@@ -54,7 +54,7 @@ ToolRunner（lib/core/tools/tool_runner.dart）
 
 ## 0.1.4 修复的关键缺陷
 
-- **Web 端所有本地工具失效**：`dart_tool_runner.dart` 无条件创建 `ReceivePort` 并通过 `listen` 接收进度，而 dart2js 不支持 `ReceivePort.listen`，浏览器里每次点「开始处理」都抛 `UnsupportedError`，7 个工具全部报「处理没有完成」。现在 Web 不建端口，进度阶段由结果返回后补发。
+- **Web 端所有本地工具失效**：`dart_tool_runner.dart` 无条件创建 `ReceivePort` 并通过 `listen` 接收进度，而 dart2js 不支持 `ReceivePort.listen`，浏览器里每次点「开始处理」都抛 `UnsupportedError`，4 个本地工具全部报「处理没有完成」。现在 Web 不建端口，进度阶段由结果返回后补发。
 - **压缩会把 PNG 变成 JPEG**：压缩现在按输入魔数判断格式，PNG 仍输出 PNG（走 zlib 级别），透明通道不再被白色背景替换。
 - **切换工具后输入文件与输出名不联动**：切换工具会重置选中文件、输出名与参数；扩展名由工具决定（PNG → JPEG 不会残留 `.png`）。
 - **更新包下载必然失败**：GitHub Release 资产 URL 一定 302 跳转到 CDN，旧代码 `followRedirects = false` 直接失败。现在手动跟随最多 5 跳、每一跳都必须 HTTPS。
@@ -63,7 +63,7 @@ ToolRunner（lib/core/tools/tool_runner.dart）
 ## 待验证
 
 - **Windows 本机构建**：当前开发机未开启「开发者模式」，Flutter 插件需要符号链接权限，`flutter build windows` 在本机被拒。Windows 产物由 CI（`windows-latest`）构建，需在发版后下载安装包做一次人工启动验收。
-- **服务端工具在浏览器内的完整链路**：本地验证时 `/app/` 与 `/api/` 不同源，浏览器受同源策略限制会失败；线上两者同源，需在部署后于 `https://www.sinxsai.site/app/` 复测 mobi/docx 两项。
+- **服务端工具在浏览器内的完整链路**：本地验证时 `/app/` 与 `/api/` 不同源，浏览器受同源策略限制会失败；线上两者同源，需在部署后于 `https://www.sinxysai.site/app/` 复测 mobi/docx 两项。
 - **macOS**：无设备，未做安装与启动验收；产物由 CI 构建（未签名/未公证）。
 - **Android**：未在真机安装验收。
 
