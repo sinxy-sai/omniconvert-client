@@ -89,11 +89,11 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "site.sinxysai" "\0"
+            VALUE "CompanyName", "sinxy-sai" "\0"
             VALUE "FileDescription", "OmniConvert" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "omniconvert" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 site.sinxysai. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright 2026 sinxy-sai. All rights reserved." "\0"
             VALUE "OriginalFilename", "omniconvert.exe" "\0"
             VALUE "ProductName", "OmniConvert" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
