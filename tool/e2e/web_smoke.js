@@ -9,6 +9,11 @@
  * already (the file-picker TypeError, and PNG being silently re-encoded as
  * JPEG by the compression tool).
  *
+ * The app is a single Flutter scroll view, so targets below the fold are wheeled
+ * into view before they are clicked, and each case asserts that the workspace
+ * actually switched to the tool under test (a missed tile click used to run the
+ * whole case against the default tool).
+ *
  * Usage:
  *   node tool/e2e/web_smoke.js [--dir build/web] [--out .work/e2e] [--headed]
  *
@@ -193,21 +198,58 @@ async function pageText(page) {
     .join('\n');
 }
 
+// The app is one Flutter scroll view painted into a canvas, so the DOM cannot
+// scroll a widget into view and a click at coordinates outside the viewport is
+// silently dropped. That is exactly how the compression cases used to fail: the
+// tool tile sits below the fold, the click did nothing, and the case then ran
+// against the default tool while only reporting a wrong output. `clickText`
+// therefore wheels the Flutter scroll view until the target is on screen.
+function centreOf(node) {
+  return { x: node.x + node.w / 2, y: node.y + node.h / 2 };
+}
+
+function isClickable(node, viewport) {
+  if (node.w <= 2 || node.h <= 2) return false;
+  const centre = centreOf(node);
+  return (
+    centre.x > 1 &&
+    centre.y > 1 &&
+    centre.x < viewport.width - 1 &&
+    centre.y < viewport.height - 1
+  );
+}
+
+async function wheelToward(page, node, viewport) {
+  const centre = centreOf(node);
+  const distance = centre.y - viewport.height / 2;
+  const step = Math.sign(distance) * Math.min(Math.abs(distance), 600);
+  await page.mouse.move(viewport.width / 2, viewport.height / 2);
+  await page.mouse.wheel(0, step);
+  await page.waitForTimeout(700);
+}
+
 async function clickText(page, needle, { optional = false, waitAfter = 1200 } = {}) {
-  for (let attempt = 0; attempt < 6; attempt += 1) {
+  const viewport = page.viewportSize();
+  for (let attempt = 0; attempt < 14; attempt += 1) {
     const nodes = await snapshot(page);
     const matches = nodes
       .filter((node) => `${node.label} ${node.text}`.includes(needle) && node.w > 2 && node.h > 2)
       .sort((left, right) => left.w * left.h - right.w * right.h);
     if (matches.length > 0) {
-      await page.mouse.click(matches[0].x + matches[0].w / 2, matches[0].y + matches[0].h / 2);
-      await page.waitForTimeout(waitAfter);
-      return true;
+      const target = matches.find((node) => isClickable(node, viewport)) || matches[0];
+      if (isClickable(target, viewport)) {
+        const centre = centreOf(target);
+        await page.mouse.click(centre.x, centre.y);
+        await page.waitForTimeout(waitAfter);
+        return true;
+      }
+      await wheelToward(page, target, viewport);
+      continue;
     }
     await page.waitForTimeout(600);
   }
   if (optional) return false;
-  throw new Error(`no semantics node matching ${JSON.stringify(needle)}`);
+  throw new Error(`no clickable semantics node matching ${JSON.stringify(needle)}`);
 }
 
 async function gotoRoute(page, route) {
@@ -242,6 +284,9 @@ const CASES = [
     toolLabel: '图片压缩',
     sample: 'png',
     extension: '.png',
+    // Without this the case can silently run against the default tool when the
+    // tile click misses, and only report a confusing output mismatch.
+    workspaceMarker: '压缩档位',
     // The regression that matters: a PNG input must stay a PNG.
     expect: { signature: '\x89PNG', note: 'PNG (format preserved)' },
   },
@@ -250,6 +295,7 @@ const CASES = [
     toolLabel: '图片压缩',
     sample: 'jpg',
     extension: '.jpg',
+    workspaceMarker: '压缩档位',
     expect: { signature: '\xff\xd8\xff', note: 'JPEG (format preserved)' },
   },
   {
@@ -271,6 +317,18 @@ async function runCase(page, testCase, results, logs) {
         ? await clickText(page, testCase.fallbackLabel, { optional: true })
         : false);
     if (!selected) throw new Error(`tool tile ${testCase.toolLabel} is not reachable`);
+
+    // A tile click that misses keeps the previously selected tool, so assert the
+    // workspace really switched to the tool under test before uploading a file.
+    if (testCase.workspaceMarker) {
+      const selectedText = await pageText(page);
+      if (!selectedText.includes(testCase.workspaceMarker)) {
+        throw new Error(
+          `tool ${testCase.toolLabel} does not look selected: no ` +
+            `${JSON.stringify(testCase.workspaceMarker)} control on screen`,
+        );
+      }
+    }
 
     const chooserPromise = page.waitForEvent('filechooser', { timeout: 20_000 });
     await clickText(page, '选择文件');
