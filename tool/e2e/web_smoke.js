@@ -208,14 +208,24 @@ function centreOf(node) {
   return { x: node.x + node.w / 2, y: node.y + node.h / 2 };
 }
 
-function isClickable(node, viewport) {
+function isClickable(node, viewport, requireFull) {
   if (node.w <= 2 || node.h <= 2) return false;
   const centre = centreOf(node);
-  return (
+  const centreInside =
     centre.x > 1 &&
     centre.y > 1 &&
     centre.x < viewport.width - 1 &&
-    centre.y < viewport.height - 1
+    centre.y < viewport.height - 1;
+  if (!centreInside) return false;
+  if (!requireFull) return true;
+  // Flutter clips the reported rect of content scrolled out of view, so a rect
+  // that merely touches the bottom edge may still be an off-screen widget:
+  // demand the whole node before trusting the click.
+  return (
+    node.x >= 0 &&
+    node.y >= 2 &&
+    node.x + node.w <= viewport.width &&
+    node.y + node.h <= viewport.height - 2
   );
 }
 
@@ -228,25 +238,29 @@ async function wheelToward(page, node, viewport) {
   await page.waitForTimeout(700);
 }
 
-async function clickText(page, needle, { optional = false, waitAfter = 1200 } = {}) {
+async function clickText(page, needle, { optional = false, waitAfter = 1200, requireFull = false } = {}) {
   const viewport = page.viewportSize();
   for (let attempt = 0; attempt < 14; attempt += 1) {
     const nodes = await snapshot(page);
+    // Smallest match = the leaf widget. Ancestor/container nodes inherit their
+    // children's textContent, so a big container also "contains" the needle and
+    // clicking its centre lands on whatever happens to be in the middle of the
+    // page: never fall back to a larger node.
     const matches = nodes
       .filter((node) => `${node.label} ${node.text}`.includes(needle) && node.w > 2 && node.h > 2)
       .sort((left, right) => left.w * left.h - right.w * right.h);
-    if (matches.length > 0) {
-      const target = matches.find((node) => isClickable(node, viewport)) || matches[0];
-      if (isClickable(target, viewport)) {
-        const centre = centreOf(target);
-        await page.mouse.click(centre.x, centre.y);
-        await page.waitForTimeout(waitAfter);
-        return true;
-      }
-      await wheelToward(page, target, viewport);
+    if (matches.length === 0) {
+      await page.waitForTimeout(600);
       continue;
     }
-    await page.waitForTimeout(600);
+    const target = matches[0];
+    if (isClickable(target, viewport, requireFull)) {
+      const centre = centreOf(target);
+      await page.mouse.click(centre.x, centre.y);
+      await page.waitForTimeout(waitAfter);
+      return true;
+    }
+    await wheelToward(page, target, viewport);
   }
   if (optional) return false;
   throw new Error(`no clickable semantics node matching ${JSON.stringify(needle)}`);
@@ -312,9 +326,9 @@ async function runCase(page, testCase, results, logs) {
   try {
     await gotoRoute(page, '/tools');
     const selected =
-      (await clickText(page, testCase.toolLabel, { optional: true })) ||
+      (await clickText(page, testCase.toolLabel, { optional: true, requireFull: true })) ||
       (testCase.fallbackLabel
-        ? await clickText(page, testCase.fallbackLabel, { optional: true })
+        ? await clickText(page, testCase.fallbackLabel, { optional: true, requireFull: true })
         : false);
     if (!selected) throw new Error(`tool tile ${testCase.toolLabel} is not reachable`);
 
@@ -392,6 +406,16 @@ async function runCase(page, testCase, results, logs) {
     await page.screenshot({ path: path.join(outDir, `${testCase.id}-error.png`) }).catch(() => {});
     await pageText(page)
       .then((text) => fs.writeFileSync(path.join(outDir, `${testCase.id}-error.txt`), text))
+      .catch(() => {});
+    // Node rects make a "the click went nowhere" failure diagnosable from the
+    // uploaded artifact alone.
+    await snapshot(page)
+      .then((nodes) =>
+        fs.writeFileSync(
+          path.join(outDir, `${testCase.id}-semantics.json`),
+          JSON.stringify(nodes, null, 2),
+        ),
+      )
       .catch(() => {});
   }
   results.push(entry);
