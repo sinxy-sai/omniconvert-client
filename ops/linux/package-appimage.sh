@@ -43,6 +43,13 @@ if [[ -z "$APPIMAGE_TOOL" || ! -x "$APPIMAGE_TOOL" ]]; then
   echo "appimagetool is required (install it on the runner)" >&2
   exit 1
 fi
+# `mktemp -d` creates the directory with mode 0700, and current appimagetool
+# builds refuse an AppDir that other users cannot read or execute (the AppImage
+# is meant to be run by whoever has the file). Without this the packaging step
+# fails with "has mode 0700, but it must be readable and executable for all
+# users".
+chmod -R a+rX "$APPDIR"
+chmod a+rx "$APPDIR/AppRun"
 "$APPIMAGE_TOOL" "$APPDIR" "$OUT"
 chmod +x "$OUT"
 [[ -s "$OUT" ]] || { echo "AppImage was not created: $OUT" >&2; exit 1; }
