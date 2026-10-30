@@ -34,17 +34,17 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
-  sqlite3: ^3.7.1
+  sqlite3: ^3.8.0
   path_provider: ^2.1.6
   http: ^1.5.0
   package_info_plus: ^9.0.0
   # Pure Dart image pipeline shared by every platform (Web + all native
   # targets). The Rust (flutter_rust_bridge) core was removed from the runtime.
-  image: 4.5.4
-  pdf: 3.11.3
+  image: 4.12.0
+  pdf: 3.13.1
   file_selector: ^1.0.3
   # SHA-256 verification of downloaded release artifacts.
-  crypto: ^3.0.7
+  crypto: ^3.0.8
 
 dev_dependencies:
   flutter_test:
