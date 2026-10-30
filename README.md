@@ -1,10 +1,52 @@
+<div align="center">
+
 # OmniConvert
 
-OmniConvert 是面向学生和研究者的本地优先文件工具。本仓库包含 Flutter 客户端、公开的设计规格与工具注册表，采用 [Apache-2.0](LICENSE) 许可证。
+**图片、PDF、电子书与文档转换，一个工作台就够了。**
 
-**当前状态：客户端 0.1.4**（`pubspec.yaml` 为 `0.1.4+4`）。六个工具已可用：PNG → JPEG、JPEG → PNG、图片压缩（保持原格式）、图片 → PDF 在**本机离线**完成；MOBI / DOCX → PDF 通过官方转换服务完成（需联网，上传即用即删）。设置页支持检查更新、应用内下载、SHA-256 校验与打开安装包。公式识别（OCR）按产品安排**暂未开放**，页面上显示「暂未开放」。
+从图片格式转换、压缩到电子书和文档转 PDF，OmniConvert 把常用文件工具集中到一个清爽的跨平台工作台。图片工具直接在设备上运行，文档转换按需使用在线服务，让学习、研究和日常办公中的文件处理更顺手。
 
-> 版本线与发布状态以 `pubspec.yaml`、git tag 和 GitHub Release 为准。真实 tag 发布产物、macOS 签名与公证、各平台安装验收仍在验证中，详见 [实施状态](docs/implementation-status.md)。
+<a href="https://github.com/sinxy-sai/omniconvert-client/releases"><img src="https://img.shields.io/github/v/release/sinxy-sai/omniconvert-client?style=flat-square&label=release" alt="Latest release"></a>
+<a href="https://github.com/sinxy-sai/omniconvert-client/actions"><img src="https://img.shields.io/github/actions/workflow/status/sinxy-sai/omniconvert-client/client.yml?style=flat-square&label=CI" alt="CI status"></a>
+<a href="https://flutter.dev/"><img src="https://img.shields.io/badge/Flutter-3.47.7-02569B?logo=flutter&logoColor=white&style=flat-square" alt="Flutter 3.47.7"></a>
+<a href="https://dart.dev/"><img src="https://img.shields.io/badge/Dart-3.13.5-0175C2?logo=dart&logoColor=white&style=flat-square" alt="Dart 3.13.5"></a>
+<a href="LICENSE"><img src="https://img.shields.io/github/license/sinxy-sai/omniconvert-client?style=flat-square" alt="Apache License 2.0"></a>
+<a href="https://github.com/sinxy-sai/omniconvert-client/stargazers"><img src="https://img.shields.io/github/stars/sinxy-sai/omniconvert-client?style=flat-square&logo=github" alt="GitHub stars"></a>
+
+**简体中文**
+
+</div>
+
+<p align="center">
+  <img src="https://socialify.git.ci/sinxy-sai/omniconvert-client/image?description=1&font=Jost&forks=1&issues=1&language=1&logo=https%3A%2F%2Fraw.githubusercontent.com%2Fsinxy-sai%2Fomniconvert-client%2Fmain%2Fweb%2Ficons%2FIcon-512.png&name=1&owner=1&pattern=Plus&pulls=1&stargazers=1&theme=Light" alt="OmniConvert project preview" width="640">
+</p>
+
+<p align="center">
+  <a href="#快速开始">🚀 快速开始</a> ·
+  <a href="#关键特性">✨ 特性</a> ·
+  <a href="#支持的工具与格式">🧰 工具</a> ·
+  <a href="#平台矩阵">💻 平台</a> ·
+  <a href="docs/README.md">📚 文档</a>
+</p>
+
+## ✨ 项目简介
+
+OmniConvert 是一个面向学生、研究者和日常办公场景的跨平台文件转换工作台。它把最常用的图片和 PDF 操作留在本机，让文件少一次上传、转换少一次等待；对 MOBI、EPUB 和 DOCX 等需要服务端能力的格式，则提供清晰、可控的在线转换路径。
+
+**选择 OmniConvert 的理由：**
+
+- **少上传**：图片转换、压缩和图片转 PDF 默认在本机完成。
+- **更顺手**：转换、任务记录、取消、重试和更新检查集中在一个应用里。
+- **跨平台**：同一套 Flutter 客户端覆盖 Web、Windows、Linux、Android、macOS 和 iOS 工程。
+- **可验证**：更新下载强制使用 HTTPS，并校验 SHA-256；工具参数由统一注册表管理。
+
+| 项目 | 说明 |
+| --- | --- |
+| **当前版本** | `0.1.5`，以 GitHub Releases 为准 |
+| **本机引擎** | 纯 Dart，基于 `package:image` 与 `package:pdf` |
+| **在线转换** | MOBI / AZW / AZW3 / EPUB / DOCX → PDF |
+| **数据边界** | 本机工具不上传文件；在线工具处理完成后即用即删 |
+| **许可证** | [Apache License 2.0](LICENSE) |
 
 ## 关键特性
 
