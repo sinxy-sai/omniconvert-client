@@ -238,6 +238,18 @@ async function wheelToward(page, node, viewport) {
   await page.waitForTimeout(700);
 }
 
+/// Back to the top of the page: the picker and the file drop zone live there, and
+/// selecting a tool that sits low in the list leaves the view scrolled down.
+async function scrollToTop(page) {
+  const viewport = page.viewportSize();
+  await page.mouse.move(viewport.width / 2, viewport.height / 2);
+  for (let step = 0; step < 4; step += 1) {
+    await page.mouse.wheel(0, -1200);
+    await page.waitForTimeout(220);
+  }
+  await page.waitForTimeout(400);
+}
+
 async function clickText(page, needle, { optional = false, waitAfter = 1200, requireFull = false } = {}) {
   const viewport = page.viewportSize();
   for (let attempt = 0; attempt < 14; attempt += 1) {
@@ -299,8 +311,10 @@ const CASES = [
     sample: 'png',
     extension: '.png',
     // Without this the case can silently run against the default tool when the
-    // tile click misses, and only report a confusing output mismatch.
-    workspaceMarker: '压缩档位',
+    // tile click misses, and only report a confusing output mismatch. The marker
+    // is the compress preset's smallest segment because the option header text
+    // itself is not exposed in Flutter's web semantics tree.
+    workspaceMarker: '最小体积',
     // The regression that matters: a PNG input must stay a PNG.
     expect: { signature: '\x89PNG', note: 'PNG (format preserved)' },
   },
@@ -309,7 +323,7 @@ const CASES = [
     toolLabel: '图片压缩',
     sample: 'jpg',
     extension: '.jpg',
-    workspaceMarker: '压缩档位',
+    workspaceMarker: '最小体积',
     expect: { signature: '\xff\xd8\xff', note: 'JPEG (format preserved)' },
   },
   {
@@ -343,6 +357,10 @@ async function runCase(page, testCase, results, logs) {
         );
       }
     }
+
+    // Selecting a tile from the bottom of the picker leaves the page scrolled
+    // down; the drop zone is at the top.
+    await scrollToTop(page);
 
     const chooserPromise = page.waitForEvent('filechooser', { timeout: 20_000 });
     await clickText(page, '选择文件');
