@@ -2,7 +2,29 @@
 
 本文件记录 OmniConvert 客户端（`omniconvert-client`）的版本变更。格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
-版本事实以 `pubspec.yaml` 与 git tag 为准。本仓库的 tag 为 `v0.1.0`、`v0.1.2`、`v0.1.3`、`v0.1.4`；**不存在 `v0.1.1`**，版本号从 `0.1.0` 直接跳到 `0.1.2`。真实发布产物、签名/公证与各平台安装验收状态见 [实施状态](docs/implementation-status.md)。
+版本事实以 `pubspec.yaml` 与 git tag 为准。本仓库的 tag 为 `v0.1.0`、`v0.1.2`、`v0.1.3`、`v0.1.4`、`v0.1.5`；**不存在 `v0.1.1`**，版本号从 `0.1.0` 直接跳到 `0.1.2`。真实发布产物、签名/公证与各平台安装验收状态见 [实施状态](docs/implementation-status.md)。
+
+## [0.1.5] - 2026-10-30
+
+### 新增 / Added
+
+- **全新品牌图标**：Windows、macOS、iOS、Android 与 Web（favicon、PWA 图标、启动画面）全部换成「O 环 + C 环 + 箭头」品牌标记（渐变 `#4F46E5 → #06B6D4`）；新增 `tool/generate_app_icons.py` 一键重生成全部平台图标，与官网品牌资产同源。
+- 应用元数据署名：Windows 文件属性 `CompanyName` / `LegalCopyright` 与 macOS `PRODUCT_COPYRIGHT` 统一为 `sinxy-sai`。
+
+### 修复 / Fixed
+
+- **许可证署名**：`LICENSE` 附录填入 `Copyright [2026] [sinxy-sai]`，新增 `NOTICE`，`README` 许可证段落同步署名；GitHub 现已识别为 Apache-2.0。
+- **CI 跨仓库误报**：`tool/generate_registry.py --check` 只校验本仓库的生成物，新增 `--check-cross-repo` 覆盖官网/服务端产物，修复 main 上 "Registry is the single source of truth" 一直失败的问题。
+- **浏览器端到端测试**：修复工具瓦片在折叠线以下时点击落空的问题（滚动到可见 + 只点叶子节点），压缩用例改为断言实际预设控件，5 个用例全部真实通过。
+
+### 变更 / Changed
+
+- 依赖升级：`cupertino_icons` 2.0.0、`package_info_plus` 10.2.2 以及 pub 小版本组更新。
+- GitHub Actions 升级：`actions/checkout@v7`、`actions/setup-node@v7`、`actions/setup-java@v6`、`actions/download-artifact@v8`、`softprops/action-gh-release@v3`。
+
+### 验证
+
+- main 的 Client workflow 7/7 job success（registry、analyze/test、web、web-e2e、Windows、Linux、Android）。
 
 ## [0.1.4] - 2026-10-30
 
