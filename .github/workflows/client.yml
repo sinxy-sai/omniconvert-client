@@ -69,7 +69,7 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Run the tool matrix in a real browser
         run: node tool/e2e/web_smoke.js --dir build/web --out e2e-out
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: web-e2e-${{ github.sha }}
@@ -93,7 +93,7 @@ jobs:
       # would otherwise fail the job with a red X that hides the real cause.
       # Drop this flag once package:image is upgraded.
       - run: flutter build web --release --base-href /app/ --no-wasm-dry-run
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: omniconvert-web
           path: build/web/
@@ -120,7 +120,7 @@ jobs:
         run: |
           Compress-Archive -Path build/windows/x64/runner/Release/* `
             -DestinationPath "omniconvert-windows-x64.zip" -Force
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: omniconvert-windows-x64
           path: omniconvert-windows-x64.zip
@@ -142,7 +142,7 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter build linux --release
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: omniconvert-linux-x64
           path: build/linux/x64/release/bundle/
@@ -166,7 +166,7 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter build apk --debug
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: omniconvert-android-debug
           path: build/app/outputs/flutter-apk/app-debug.apk
