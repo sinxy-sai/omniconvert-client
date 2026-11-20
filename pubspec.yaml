@@ -40,7 +40,7 @@ dependencies:
   package_info_plus: ^10.2.2
   # Pure Dart image pipeline shared by every platform (Web + all native
   # targets). The Rust (flutter_rust_bridge) core was removed from the runtime.
-  image: 4.12.0
+  image: 4.13.1
   pdf: 3.13.1
   file_selector: ^1.0.3
   # SHA-256 verification of downloaded release artifacts.
